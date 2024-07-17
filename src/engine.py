@@ -1,5 +1,7 @@
+from enum import Enum
 from types import LambdaType
 from typing import Tuple
+import random
 import pygame
 
 
@@ -12,28 +14,31 @@ WHITE = pygame.Color("white")
 # Init
 pygame.init()
 fonts = [pygame.font.Font("resources/fonts/Chicago.ttf", i) for i in range(101)]
+underlines = [
+    pygame.image.load("resources/images/underlines.png").subsurface(0, i * 83, 500, 83)
+    for i in range(6)
+]
 
 
 class ButtonLabel:
-    def __init__(self, pos: Tuple, size: Tuple, text, do: LambdaType) -> None:
+    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
-        self.surf = pygame.surface.Surface((10, 10))
-        self.surf.fill(pygame.Color("white"))
-        self.rect = pygame.Rect(*pos, *size)
-        self.text = text
+        self.text = fonts[font_size].render(text, True, WHITE)
+        self.rect = pygame.Rect(pos, self.text.size)
         self.do = do
+        self.underline = random.choice(underlines)
+        self.underline_rect = pygame.Rect(
+            self.rect.left, self.rect.bottom, self.rect.width, 24
+        )
 
     def process_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(pygame.mouse.get_pos()):
-                self.enabled = not self.enabled
-
-    def update(self):
-        if pygame.mouse.get_pressed()[0]:
-            if self.rect.collidepoint(pygame.mouse.get_pos()):
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            display.blit(self.underline, self.underline_rect)
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 self.do()
 
-        display.blit(self.surf, self.rect)
+    def update(self):
+        display.blit(self.text, self.rect)
 
 
 class ButtonToggle:
@@ -76,6 +81,16 @@ class Game:
     def __init__(self) -> None:
         self.running = True
         self.target_fps = 60
+        self.state = States.PLAY
+
+    def set_state(self, target_state):
+        self.state = target_state
+
+
+class States(Enum):
+    MENU = 0
+    SETTINGS = 1
+    PLAY = 2
 
 
 # Globals
