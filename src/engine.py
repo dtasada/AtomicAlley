@@ -9,7 +9,14 @@ import pygame
 v2 = Tuple[float, float]
 
 # Constants
-WHITE = pygame.Color("white")
+WIDTH, HEIGHT = 1280, 720
+MMS = 15
+R = 3
+S = 31 * R
+HS = 15 * R
+QS = 8 * R
+ORIGIN = (500, 30)
+
 
 # Init
 pygame.init()
@@ -23,7 +30,7 @@ underlines = [
 class ButtonLabel:
     def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
-        self.text = fonts[font_size].render(text, True, WHITE)
+        self.text = fonts[font_size].render(text, True, Colors.WHITE)
         self.rect = pygame.Rect(pos, self.text.size)
         self.do = do
         self.underline = random.choice(underlines)
@@ -47,10 +54,10 @@ class ButtonToggle:
     ) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
         self.button_surf = pygame.surface.Surface(size)
-        self.button_surf.fill(WHITE)
+        self.button_surf.fill(Colors.WHITE)
         self.button_rect = pygame.Rect(*pos, *size)
         self.enabled = enabled
-        self.text = fonts[self.button_rect.width].render(text, True, WHITE)
+        self.text = fonts[self.button_rect.width].render(text, True, Colors.WHITE)
         self.text_rect = pygame.Rect(
             self.button_rect.right + text_offset,
             self.button_rect.top - 4,
@@ -70,25 +77,13 @@ class ButtonToggle:
                 self.enabled = not self.enabled
 
     def update(self):
-        pygame.draw.rect(display, WHITE, self.button_rect, width=1, border_radius=8)
+        pygame.draw.rect(
+            display, Colors.WHITE, self.button_rect, width=1, border_radius=8
+        )
 
         display.blit(self.text, self.text_rect)
         if self.enabled:
-            pygame.draw.rect(display, WHITE, self.button_rect, border_radius=8)
-
-
-BLACK = (0, 0, 0)
-LIGHT_GRAY = (200, 200, 200)
-WHITE = (255, 255, 255)
-
-
-WIDTH, HEIGHT = 1280, 720
-MMS = 15
-R = 3
-S = 31 * R
-HS = 15 * R
-QS = 8 * R
-ORIGIN = (500, 30)
+            pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
 class Game:
@@ -99,6 +94,12 @@ class Game:
 
     def set_state(self, target_state):
         self.state = target_state
+
+
+class Colors:
+    BLACK = (0, 0, 0)
+    LIGHT_GRAY = (200, 200, 200)
+    WHITE = (255, 255, 255)
 
 
 class States(Enum):
