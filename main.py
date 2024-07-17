@@ -44,8 +44,8 @@ def main():
             mm_y = y * MMS
             pygame.draw.rect(display, (106, 190, 48), (mm_x, mm_y, MMS, MMS))
             pygame.draw.rect(display, WHITE, (mm_x, mm_y, MMS, MMS), 1)
-            blit_x = ORIGIN[0] + x * HS - y * HS
-            blit_y = ORIGIN[1] + x * QS + y * QS
+            blit_x, blit_y = cart_to_iso(x, y, 0)
+            # display.blit(pygame.font.SysFont("Times New Roman", 14).render(f"{x},{y}", True, BLACK), (blit_x, blit_y))
             # map
             display.blit(tiles[tile], (blit_x, blit_y))
 
