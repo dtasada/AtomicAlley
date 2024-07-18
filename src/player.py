@@ -19,16 +19,39 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-        m = 0.1
+        left = right = top = bottom = False
+        m = 0.2
         if keys[pygame.K_a]:
-            self.x -= 1
+            left = True
         if keys[pygame.K_d]:
-            self.x += 1
+            right = True
         if keys[pygame.K_w]:
-            self.y -= 1
+            top = True
         if keys[pygame.K_s]:
-            self.y += 1
+            bottom = True
+        if top:
+            if left:
+                self.x -= m
+            elif right:
+                self.y -= m
+            else:
+                self.x -= m * sqrt(0.5)
+                self.y -= m * sqrt(0.5)
+        elif bottom:
+            if left:
+                self.y += m
+            elif right:
+                self.x += m
+            else:
+                self.x += m * sqrt(0.5)
+                self.y += m * sqrt(0.5)
+        elif left:
+            self.x -= m * sqrt(0.5)
+            self.y += m * sqrt(0.5)
+        elif right:
+            self.x += m * sqrt(0.5)
+            self.y -= m * sqrt(0.5)
 
     def draw(self):
-        display.draw(self.image, self.mm_rect)
-
+        blit_x, blit_y = cart_to_iso(self.x, self.y, 1)
+        display.blit(self.image, (blit_x, blit_y))

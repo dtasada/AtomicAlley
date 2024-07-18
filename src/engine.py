@@ -3,19 +3,24 @@ from types import LambdaType
 from typing import Tuple
 import random
 import pygame
+from math import sqrt
 
+
+BLACK = (0, 0, 0)
+LIGHT_GRAY = (200, 200, 200)
+WHITE = (255, 255, 255)
 
 # Types
 v2 = Tuple[float, float]
 
 # Constants
 WIDTH, HEIGHT = 1280, 720
-MMS = 15
+MMS = 16
 R = 3
-S = 31 * R
-HS = 15 * R
+S = 32 * R
+HS = 16 * R
 QS = 8 * R
-ORIGIN = (500, 30)
+ORIGIN = (600, 60)
 
 
 # Init
@@ -93,6 +98,12 @@ class ButtonToggle(Button):
 
         if self.enabled:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
+
+
+def cart_to_iso(x, y, z):
+    blit_x = ORIGIN[0] + x * HS - y * HS
+    blit_y = ORIGIN[1] + x * QS + y * QS - z * HS
+    return (blit_x, blit_y)
 
 
 class Game:
