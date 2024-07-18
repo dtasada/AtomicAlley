@@ -4,12 +4,15 @@ from pathlib import Path
 
 class Player:
     def __init__(self):
-        self.x = 0
-        self.y = 0
+        self.x = 5
+        self.y = 4
         self.image = pygame.transform.scale_by(
-            pygame.image.load(Path("resources", "images", "diag_player.png")), R
+            pygame.image.load("resources/images/diag_player.png"), 2
         )
-        self.width, self.height = self.image.get_size()
+
+    @property
+    def mm_rect(self):
+        return (self.x * MMS, self.y * MMS)
 
     def update(self):
         self.keys()
@@ -53,4 +56,3 @@ class Player:
     def draw(self):
         blit_x, blit_y = cart_to_iso(self.x, self.y, 1)
         display.blit(self.image, (blit_x, blit_y))
-

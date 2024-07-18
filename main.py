@@ -5,13 +5,14 @@ from typing import Dict
 import pygame
 import itertools
 from src.engine import *
-from src.player import *
+
+# from src.player import *
 from pathlib import Path
 
 
 clock = pygame.time.Clock()
 game = Game()
-player = Player()
+# player = Player()
 
 tiles = [
     pygame.transform.scale_by(

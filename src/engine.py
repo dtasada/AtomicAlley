@@ -37,42 +37,50 @@ underlines = [
 ]
 
 
-class ButtonLabel:
-    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
+class Button:
+    def __init__(self, pos: v2, size: int, text) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
-        self.text = fonts[font_size].render(text, True, Colors.WHITE)
-        self.rect = pygame.Rect(pos, self.text.get_size())
-        self.do = do
+        self.text = fonts[size].render(text, True, Colors.WHITE)
+        self.text_rect = pygame.Rect(pos, self.text.size)
         self.underline = random.choice(underlines)
         self.underline_rect = pygame.Rect(
-            self.rect.left, self.rect.bottom, self.rect.width, 24
+            pos[1], self.text_rect.bottom, self.text_rect.width, 24
         )
-
-    def process_event(self, event):
-        if self.rect.collidepoint(pygame.mouse.get_pos()):
-            display.blit(self.underline, self.underline_rect)
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                self.do()
 
     def update(self):
-        display.blit(self.text, self.rect)
+        display.blit(self.text, self.text_rect)
+        if self.text_rect.collidepoint(pygame.mouse.get_pos()):
+            display.blit(self.underline, self.underline_rect)
 
 
-class ButtonToggle:
+class ButtonLabel(Button):
+    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
+        super().__init__(pos, font_size, text)
+        self.do = do
+
+    def process_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.text_rect.collidepoint(pygame.mouse.get_pos()):
+                self.do()
+
+
+class ButtonToggle(Button):
     def __init__(
-        self, pos: v2, size: v2, text, text_offset: int, enabled=False
+        self, pos: v2, size: int, text, text_offset: int, enabled=False
     ) -> None:
-        # self.surf = pygame.image.load("resources/images/button.png")
-        self.button_surf = pygame.surface.Surface(size)
+        super().__init__(pos, size, text)
+
+        self.button_surf = pygame.surface.Surface((size, size))
         self.button_surf.fill(Colors.WHITE)
-        self.button_rect = pygame.Rect(*pos, *size)
-        self.enabled = enabled
-        self.text = fonts[self.button_rect.width].render(text, True, Colors.WHITE)
+        self.button_rect = pygame.Rect(pos, (size, size))
+
         self.text_rect = pygame.Rect(
             self.button_rect.right + text_offset,
-            self.button_rect.top - 4,
-            *self.text.get_size()  # - 4 is to compensate font vertical padding
+            self.button_rect.top - 4,  # - 4 is to compensate font vertical padding
+            *self.text.get_size()
         )
+
+        self.enabled = enabled
 
         self.combi_rect = pygame.Rect(
             self.button_rect.left,
@@ -91,7 +99,8 @@ class ButtonToggle:
             display, Colors.WHITE, self.button_rect, width=1, border_radius=8
         )
 
-        display.blit(self.text, self.text_rect)
+        super().update()
+
         if self.enabled:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
