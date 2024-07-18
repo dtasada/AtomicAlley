@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
-import sys
-from typing import Dict
-import pygame
 import itertools
-from src.engine import *
+import pygame
+import sys
 
-# from src.player import *
 from pathlib import Path
+from typing import Dict
+
+from src.engine import *
+from src.player import *
 
 
 clock = pygame.time.Clock()
 game = Game()
-# player = Player()
+player = Player()
 
 tiles = [
     pygame.transform.scale_by(
@@ -34,7 +35,7 @@ world = World()
 
 def main():
     buttons: Dict[str, Button] = {
-        "b": ButtonToggle((100, 100), (24, 24), "toggle", 10),
+        "b": ButtonToggle((100, 100), 24, "toggle", 10),
         "title": ButtonLabel(
             (200, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
         ),

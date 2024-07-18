@@ -52,6 +52,8 @@ class Button:
         if self.text_rect.collidepoint(pygame.mouse.get_pos()):
             display.blit(self.underline, self.underline_rect)
 
+    def process_event(self, event) -> None: ...
+
 
 class ButtonLabel(Button):
     def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
