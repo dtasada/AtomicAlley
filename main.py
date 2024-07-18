@@ -4,17 +4,18 @@ import sys
 import pygame
 import itertools
 from src.engine import *
-from src.player import *
+
+# from src.player import *
 from pathlib import Path
 
 
 clock = pygame.time.Clock()
 game = Game()
-player = Player()
+# player = Player()
 
 tiles = [
-    pygame.transform.scale_by(pygame.image.load(Path("assets", "empty.png")), R),
-    pygame.transform.scale_by(pygame.image.load(Path("assets", "tile.png")), R),
+    pygame.transform.scale_by(pygame.image.load(Path("resources", "empty.png")), R),
+    pygame.transform.scale_by(pygame.image.load(Path("resources", "tile.png")), R),
 ]
 
 
@@ -27,8 +28,8 @@ world = World()
 
 
 def main():
-    b = ButtonToggle((100, 100), (24, 24), "toggle", 10)
-    title = ButtonLabel((200, 200), 20, "BOTH", lambda: game.set_state(States.PLAY))
+    b = ButtonToggle((100, 100), 24, "toggle", 10)
+    title = ButtonLabel((200, 200), 24, "BOTH", lambda: game.set_state(States.PLAY))
 
     while game.running:
         for event in pygame.event.get():
@@ -54,7 +55,7 @@ def main():
             # map
             display.blit(tiles[tile], (blit_x, blit_y))
 
-        player.update()
+        # player.update()
         b.update()
         title.update()
 
