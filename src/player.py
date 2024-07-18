@@ -1,17 +1,20 @@
 from .engine import *
+from pathlib import Path
 
 
 class Player:
     def __init__(self):
         self.x = 0
         self.y = 0
-        self.image = pygame.transform.scale_by(pygame.image.load("./assets/diag_player.png"), R)
+        self.image = pygame.transform.scale_by(
+            pygame.image.load(Path("resources", "images", "diag_player.png")), R
+        )
         self.width, self.height = self.image.get_size()
 
     def update(self):
         self.keys()
         self.draw()
-    
+
     def keys(self):
         keys = pygame.key.get_pressed()
         left = right = top = bottom = False
@@ -50,3 +53,4 @@ class Player:
     def draw(self):
         blit_x, blit_y = cart_to_iso(self.x, self.y, 1)
         display.blit(self.image, (blit_x, blit_y))
+

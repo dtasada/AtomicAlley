@@ -1,9 +1,10 @@
 from enum import Enum
-from types import LambdaType
+from types import FunctionType, LambdaType
 from typing import Tuple
 import random
 import pygame
 from math import sqrt
+from pathlib import Path
 
 
 BLACK = (0, 0, 0)
@@ -25,9 +26,13 @@ ORIGIN = (600, 60)
 
 # Init
 pygame.init()
-fonts = [pygame.font.Font("resources/fonts/Chicago.ttf", i) for i in range(101)]
+fonts = [
+    pygame.font.Font(Path("resources", "fonts", "Chicago.ttf"), i) for i in range(101)
+]
 underlines = [
-    pygame.image.load("resources/images/underlines.png").subsurface(0, i * 83, 500, 83)
+    pygame.image.load(Path("resources", "images", "underlines.png")).subsurface(
+        0, i * 83, 500, 83
+    )
     for i in range(6)
 ]
 
@@ -91,11 +96,11 @@ class ButtonToggle:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
-
 def cart_to_iso(x, y, z):
     blit_x = ORIGIN[0] + x * HS - y * HS
     blit_y = ORIGIN[1] + x * QS + y * QS - z * HS
     return (blit_x, blit_y)
+
 
 class Game:
     def __init__(self) -> None:
