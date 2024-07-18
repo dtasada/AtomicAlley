@@ -6,22 +6,19 @@ import pygame
 from math import sqrt
 
 
-<<<<<<< HEAD
 BLACK = (0, 0, 0)
 LIGHT_GRAY = (200, 200, 200)
 WHITE = (255, 255, 255)
 
-=======
 # Types
 v2 = Tuple[float, float]
 
 # Constants
->>>>>>> 6c1f95607344bbb8ca5fd42c00ad8ff9e4eec9d4
 WIDTH, HEIGHT = 1280, 720
-MMS = 15
+MMS = 16
 R = 3
-S = 31 * R
-HS = 15 * R
+S = 32 * R
+HS = 16 * R
 QS = 8 * R
 ORIGIN = (600, 60)
 
@@ -39,7 +36,7 @@ class ButtonLabel:
     def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
         self.text = fonts[font_size].render(text, True, Colors.WHITE)
-        self.rect = pygame.Rect(pos, self.text.size)
+        self.rect = pygame.Rect(pos, self.text.get_size())
         self.do = do
         self.underline = random.choice(underlines)
         self.underline_rect = pygame.Rect(
