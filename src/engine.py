@@ -3,28 +3,26 @@ from types import LambdaType
 from typing import Tuple
 import random
 import pygame
+import pygame.gfxdraw
 from math import sqrt
+from random import randint as rand
 
 
-<<<<<<< HEAD
 BLACK = (0, 0, 0)
 LIGHT_GRAY = (200, 200, 200)
 WHITE = (255, 255, 255)
 
-=======
 # Types
 v2 = Tuple[float, float]
 
 # Constants
->>>>>>> 6c1f95607344bbb8ca5fd42c00ad8ff9e4eec9d4
 WIDTH, HEIGHT = 1280, 720
 MMS = 15
 R = 3
 S = 31 * R
 HS = 15 * R
 QS = 8 * R
-ORIGIN = (600, 60)
-
+ORIGIN = (0, 0)
 
 # Init
 pygame.init()
@@ -39,7 +37,7 @@ class ButtonLabel:
     def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
         self.text = fonts[font_size].render(text, True, Colors.WHITE)
-        self.rect = pygame.Rect(pos, self.text.size)
+        self.rect = pygame.Rect(pos, self.text.get_size())
         self.do = do
         self.underline = random.choice(underlines)
         self.underline_rect = pygame.Rect(
@@ -94,32 +92,74 @@ class ButtonToggle:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
+def gen_char():
+    surf = pygame.Surface((10, 10), pygame.SRCALPHA)
+    n = 0
+    x = rand(0, 9)
+    y = rand(0, 9)
+    while n < 20:
+        o = rand(1, 8)
+        if o == 1:
+            x += 1
+            y -= 1
+        elif o == 2:
+            x += 1
+        elif o == 3:
+            x += 1
+            y += 1
+        elif o == 4:
+            y += 1
+        elif o == 5:
+            x -= 1
+            y += 1
+        elif o == 6:
+            x -= 1
+        elif o == 7:
+            x -= 1
+            y -= 1
+        elif o == 8:
+            y -= 1
+        surf.set_at((x, y), Colors.BLACK)
+        n += 1
+    surf = pygame.transform.scale_by(surf, 10)
+    return surf
+
+
 
 def cart_to_iso(x, y, z):
     blit_x = ORIGIN[0] + x * HS - y * HS
     blit_y = ORIGIN[1] + x * QS + y * QS - z * HS
     return (blit_x, blit_y)
 
-class Game:
-    def __init__(self) -> None:
-        self.running = True
-        self.target_fps = 60
-        self.state = States.PLAY
-
-    def set_state(self, target_state):
-        self.state = target_state
-
-
-class Colors:
-    BLACK = (0, 0, 0)
-    LIGHT_GRAY = (200, 200, 200)
-    WHITE = (255, 255, 255)
-
 
 class States(Enum):
     MENU = 0
     SETTINGS = 1
     PLAY = 2
+
+
+class Game:
+    def __init__(self) -> None:
+        self.running = True
+        self.target_fps = 60
+        self.state = States.PLAY
+        self.fake_scroll = [0, 0]
+        self.scroll = [0, 0]
+
+
+    def set_state(self, target_state):
+        self.state = target_state
+
+
+game = Game()
+
+
+class Colors:
+    BLACK = (0, 0, 0)
+    LIGHT_GRAY = (200, 200, 200)
+    GRAYS = [(x, x, x) for x in range(255)]
+    WHITE = (255, 255, 255)
+    RED = (255, 0, 0)
 
 
 # Globals

@@ -9,7 +9,6 @@ from pathlib import Path
 
 
 clock = pygame.time.Clock()
-game = Game()
 player = Player()
 
 tiles = [
@@ -20,11 +19,12 @@ tiles = [
 
 class World:
     def __init__(self):
-        self.data = dict.fromkeys(itertools.product(range(10), range(10)), 1)
+        self.data = dict.fromkeys(itertools.product(range(10), range(10)), None)
+        self.data = {k: rand(1, 1) for k, v in self.data.items()}
 
 
 world = World()
-
+surfs = [gen_char() for _ in range(20)]
 
 def main():
     b = ButtonToggle((100, 100), (24, 24), "toggle", 10)
@@ -40,7 +40,9 @@ def main():
                     pygame.quit()
                     sys.exit()
 
-        display.fill(Colors.LIGHT_GRAY)
+        display.fill(Colors.GRAYS[50])
+
+        player.scroll()
 
         for pos, tile in world.data.items():
             x, y = pos
@@ -48,17 +50,14 @@ def main():
             mm_x = x * MMS
             mm_y = y * MMS
             pygame.draw.rect(display, (106, 190, 48), (mm_x, mm_y, MMS, MMS))
-<<<<<<< HEAD
             pygame.draw.rect(display, WHITE, (mm_x, mm_y, MMS, MMS), 1)
-            blit_x, blit_y = cart_to_iso(x, y, 0)
-            # display.blit(pygame.font.SysFont("Times New Roman", 14).render(f"{x},{y}", True, BLACK), (blit_x, blit_y))
-=======
-            pygame.draw.rect(display, Colors.WHITE, (mm_x, mm_y, MMS, MMS), 1)
-            blit_x = ORIGIN[0] + x * HS - y * HS
-            blit_y = ORIGIN[1] + x * QS + y * QS
->>>>>>> 6c1f95607344bbb8ca5fd42c00ad8ff9e4eec9d4
-            # map
-            display.blit(tiles[tile], (blit_x, blit_y))
+            if tile > 0:
+                blit_x, blit_y = cart_to_iso(x, y, 0)
+                # display.blit(pygame.font.SysFont("Times New Roman", 14).render(f"{x},{y}", True, BLACK), (blit_x, blit_y))
+                # map
+                blit_x -= game.scroll[0]
+                blit_y -= game.scroll[1]
+                display.blit(tiles[tile], (blit_x, blit_y))
 
         player.update()
         b.update()
