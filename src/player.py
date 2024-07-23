@@ -1,5 +1,6 @@
 from .engine import *
-from pathlib import Path
+
+from math import sqrt
 
 
 class Player:
@@ -7,11 +8,20 @@ class Player:
         self.x = 0
         self.y = 0
         self.blit_x = self.blit_y = 0
-        self.image_sprs = imgload("resources", "images", "player_sheet.png", frames=5, vertical=True)
-        self.images = {("bottomleft", "bottom", "right", "topright", "top")[i]: self.image_sprs[i] for i in range(5)}
+        self.image_sprs = imgload(
+            "resources", "images", "player_sheet.png", frames=5, vertical=True
+        )
+        self.images = {
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: self.image_sprs[i]
+            for i in range(5)
+        }
         self.images["left"] = pygame.transform.flip(self.images["right"], True, False)
-        self.images["bottomright"] = pygame.transform.flip(self.images["bottomleft"], True, False)
-        self.images["topleft"] = pygame.transform.flip(self.images["topright"], True, False)
+        self.images["bottomright"] = pygame.transform.flip(
+            self.images["bottomleft"], True, False
+        )
+        self.images["topleft"] = pygame.transform.flip(
+            self.images["topright"], True, False
+        )
         self.it = "bottom"
         self.image = self.images[self.it]
         self.width, self.height = self.image.get_size()
@@ -22,7 +32,7 @@ class Player:
     def update(self):
         self.keys()
         self.draw()
-    
+
     def scroll(self):
         game.fake_scroll[0] += (self.blit_x - game.fake_scroll[0] - WIDTH // 2) * 0.1
         game.fake_scroll[1] += (self.blit_y - game.fake_scroll[1] - HEIGHT // 2) * 0.1

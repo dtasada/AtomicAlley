@@ -1,12 +1,15 @@
-from enum import Enum
-from types import FunctionType, LambdaType
-from typing import Tuple
 import random
 import pygame
+
 import pygame.gfxdraw
-from math import sqrt
-from random import randint as rand
+
+from enum import Enum
+from types import LambdaType
+from typing import Tuple
 from pathlib import Path
+
+from math import floor
+from random import randint as rand
 
 
 BLACK = (0, 0, 0)
@@ -24,6 +27,9 @@ S = 32 * R
 HS = 16 * R
 QS = 8 * R
 ORIGIN = (0, 0)
+
+BORDER_RADIUS = 8
+ANTI_ALIASING = False
 
 # Init
 pygame.init()
@@ -68,9 +74,7 @@ class ButtonLabel(Button):
 
 
 class ButtonToggle(Button):
-    def __init__(
-        self, pos: v2, size: int, text, text_offset: int, enabled=False
-    ) -> None:
+    def __init__(self, pos: v2, size: int, text, text_offset: int, enabled=False):
         super().__init__(pos, size, text)
 
         self.button_surf = pygame.surface.Surface((size, size))
@@ -80,7 +84,7 @@ class ButtonToggle(Button):
         self.text_rect = pygame.Rect(
             self.button_rect.right + text_offset,
             self.button_rect.top - 4,  # - 4 is to compensate font vertical padding
-            *self.text.get_size()
+            *self.text.get_size(),
         )
 
         self.enabled = enabled
@@ -99,7 +103,11 @@ class ButtonToggle(Button):
 
     def update(self):
         pygame.draw.rect(
-            display, Colors.WHITE, self.button_rect, width=1, border_radius=8
+            display,
+            Colors.WHITE,
+            self.button_rect,
+            width=1,
+            border_radius=BORDER_RADIUS,
         )
 
         super().update()
@@ -163,26 +171,74 @@ def imgload(*path_, frames=1, vertical=False, scale=R):
     return image
 
 
-class Game:
-    def __init__(self) -> None:
-        self.running = True
-        self.target_fps = 60
-        self.state = States.PLAY
+class TextWriter:
+    def __init__(self, content, pos, font_size, color):
+        self.index = 0.0
+        self.font_size = font_size
+        self.body_pos = pos
+        self.body_texs = [
+            fonts[font_size].render(content[:i], False, color)
+            for i in range(len(content) + 1)
+        ]
+        self.body_rects = [
+            self.body_texs[i].get_rect(topleft=pos) for i in range(len(self.body_texs))
+        ]
 
-    def set_state(self, target_state):
-        self.state = target_state
+    def update(self):
+        display.blit(
+            self.body_texs[floor(self.index)], self.body_rects[floor(self.index)]
+        )
+        # rounding bc floating point bs (apparently 0.0 + 0.1 = 0.100000000096)
+        target = self.index + 0.25
+        if target <= len(self.body_texs) - 1:
+            self.index = target
+
+        print("target:", target)
 
 
-class Colors:
-    BLACK = (0, 0, 0)
-    LIGHT_GRAY = (200, 200, 200)
-    WHITE = (255, 255, 255)
+class Dialogue(TextWriter):
+    def __init__(self, content, speaker):
+        self.margin = 16
+        self.back_color = Colors.GRAYS[32]
+        self.body_color = Colors.WHITE
+        self.speaker = speaker  # speaker is the character that says the thing
+        size = (display.width - self.margin * 2, 320)
+        self.master_rect = pygame.Rect(
+            (self.margin, display.height - size[1] - self.margin),
+            size,
+        )
 
+        self.speaker_tex = fonts[FontSize.SUBTITLE].render(
+            self.speaker, ANTI_ALIASING, self.body_color
+        )
+        self.speaker_rect = self.speaker_tex.get_rect(
+            topleft=(
+                self.margin * 2,
+                display.height - self.master_rect.height - self.margin / 2,
+            )
+        )
 
-class States(Enum):
-    MENU = 0
-    SETTINGS = 1
-    PLAY = 2
+        super().__init__(  # careful not to overwrite anything here
+            content,
+            self.master_rect.topleft,
+            FontSize.BODY,
+            Colors.WHITE,
+        )
+
+        for rect in self.body_rects:
+            rect.topleft = (
+                rect.left + self.margin,
+                self.speaker_rect.bottom + self.margin / 2,
+            )
+
+        print(self.body_rects)
+
+    def update(self):
+        pygame.draw.rect(
+            display, self.back_color, self.master_rect, border_radius=BORDER_RADIUS
+        )  # render box
+        display.blit(self.speaker_tex, self.speaker_rect)  # render speaker
+        super().update()  # render body
 
 
 class Game:
@@ -193,12 +249,21 @@ class Game:
         self.fake_scroll = [0, 0]
         self.scroll = [0, 0]
 
-
     def set_state(self, target_state):
         self.state = target_state
 
 
-game = Game()
+class States(Enum):
+    MENU = 0
+    SETTINGS = 1
+    PLAY = 2
+
+
+class FontSize:
+    BODY = 36
+    SUBTITLE = 40
+    DIALOGUE = 42
+    TITLE = 64
 
 
 class Colors:

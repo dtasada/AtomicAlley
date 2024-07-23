@@ -33,6 +33,7 @@ class World:
 world = World()
 surfs = [gen_char() for _ in range(20)]
 
+
 def main():
     buttons: Dict[str, Button] = {
         "b": ButtonToggle((100, 100), 24, "toggle", 10),
@@ -41,16 +42,20 @@ def main():
         ),
     }
 
+    tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
+    dg = Dialogue("Wow this alley really is atomic!", "Dexter")
+
     while game.running:
         for event in pygame.event.get():
-            for button in buttons.values():
-                button.process_event(event)
+            if game.state == States.MENU:
+                for button in buttons.values():
+                    button.process_event(event)
 
             match event.type:
                 case pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                
+
                 case pygame.KEYDOWN:
                     if pygame.key.get_pressed()[pygame.K_ESCAPE]:
                         if game.state == States.PLAY:
@@ -61,7 +66,6 @@ def main():
         display.fill(Colors.GRAYS[50])
 
         player.scroll()
-                
 
         display.fill(Colors.LIGHT_GRAY)
 
@@ -81,8 +85,11 @@ def main():
                 display.blit(tiles[tile], (blit_x, blit_y))
 
         player.update()
-        for button in buttons.values():
-            button.update()
+        if game.state == States.MENU:
+            for button in buttons.values():
+                button.update()
+
+        dg.update()
 
         pygame.display.update()
         clock.tick(game.target_fps)
