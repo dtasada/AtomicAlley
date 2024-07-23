@@ -24,8 +24,8 @@ class Player:
         self.draw()
     
     def scroll(self):
-        game.fake_scroll[0] += (self.blit_x - game.fake_scroll[0] - WIDTH // 2) * 0.1
-        game.fake_scroll[1] += (self.blit_y - game.fake_scroll[1] - HEIGHT // 2) * 0.1
+        game.fake_scroll[0] += (self.rect.centerx - game.fake_scroll[0] - WIDTH // 2) * 0.1
+        game.fake_scroll[1] += (self.rect.centery - game.fake_scroll[1] - HEIGHT // 2) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
 
@@ -33,6 +33,9 @@ class Player:
         keys = pygame.key.get_pressed()
         left = right = top = bottom = False
         m = 0.05
+        mods = pygame.key.get_mods()
+        if mods == 1:
+            m *= 2
         if keys[pygame.K_a]:
             left = True
         if keys[pygame.K_d]:

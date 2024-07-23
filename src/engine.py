@@ -108,6 +108,13 @@ class ButtonToggle(Button):
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
+def write(orientation, text, font, color, x, y):
+    surf = font.render(str(text), True, color)
+    rect = surf.get_rect()
+    setattr(rect, orientation, (x, y))
+    display.blit(surf, rect)
+
+
 def gen_char():
     surf = pygame.Surface((10, 10), pygame.SRCALPHA)
     n = 0
