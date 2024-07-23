@@ -1,4 +1,5 @@
 from .engine import *
+from pathlib import Path
 
 
 class Player:
@@ -6,7 +7,13 @@ class Player:
         self.x = 0
         self.y = 0
         self.blit_x = self.blit_y = 0
-        self.image = pygame.transform.scale_by(pygame.image.load("./assets/player.png"), R)
+        self.image_sprs = imgload("resources", "images", "player_sheet.png", frames=5, vertical=True)
+        self.images = {("bottomleft", "bottom", "right", "topright", "top")[i]: self.image_sprs[i] for i in range(5)}
+        self.images["left"] = pygame.transform.flip(self.images["right"], True, False)
+        self.images["bottomright"] = pygame.transform.flip(self.images["bottomleft"], True, False)
+        self.images["topleft"] = pygame.transform.flip(self.images["topright"], True, False)
+        self.it = "bottom"
+        self.image = self.images[self.it]
         self.width, self.height = self.image.get_size()
         self.rect = self.image.get_rect()
         self.srect = self.image.get_rect()
@@ -34,28 +41,37 @@ class Player:
             top = True
         if keys[pygame.K_s]:
             bottom = True
+        # self.it = image type, e.g. topleft, bottom, etc.
         if top:
             if left:
                 self.x -= m
+                self.it = "topleft"
             elif right:
                 self.y -= m
+                self.it = "topright"
             else:
                 self.x -= m * sqrt(0.5)
                 self.y -= m * sqrt(0.5)
+                self.it = "top"
         elif bottom:
             if left:
                 self.y += m
+                self.it = "bottomleft"
             elif right:
                 self.x += m
+                self.it = "bottomright"
             else:
                 self.x += m * sqrt(0.5)
                 self.y += m * sqrt(0.5)
+                self.it = "bottom"
         elif left:
             self.x -= m * sqrt(0.5)
             self.y += m * sqrt(0.5)
+            self.it = "left"
         elif right:
             self.x += m * sqrt(0.5)
             self.y -= m * sqrt(0.5)
+            self.it = "right"
 
     def draw(self):
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
@@ -67,4 +83,5 @@ class Player:
         self.srect.midbottom = (self.blit_x, self.blit_y)
         self.srect.x -= game.scroll[0]
         self.srect.y -= game.scroll[1]
+        self.image = self.images[self.it]
         display.blit(self.image, self.srect)
