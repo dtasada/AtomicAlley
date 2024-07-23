@@ -41,7 +41,7 @@ class Button:
     def __init__(self, pos: v2, size: int, text) -> None:
         # self.surf = pygame.image.load("resources/images/button.png")
         self.text = fonts[size].render(text, True, Colors.WHITE)
-        self.text_rect = pygame.Rect(pos, self.text.size)
+        self.text_rect = pygame.Rect(pos, self.text.get_size())
         self.underline = random.choice(underlines)
         self.underline_rect = pygame.Rect(
             pos[1], self.text_rect.bottom, self.text_rect.width, 24
