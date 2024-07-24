@@ -1,5 +1,9 @@
 from .engine import *
 
+from types import LambdaType
+
+import random
+
 
 class Button:
     def __init__(self, pos: v2, size: int, text) -> None:

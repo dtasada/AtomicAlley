@@ -28,6 +28,8 @@ class TextWriter:
     def kill(self):
         self.index = 0
         self.show = False
+        if game.dialogue == self:
+            game.dialogue = None
 
     def update(self):
         if pygame.key.get_just_pressed()[pygame.K_SPACE]:

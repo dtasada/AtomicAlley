@@ -2,6 +2,8 @@ from .engine import *
 from .buttons import *
 from .writers import *
 
+import sys
+
 
 class Interactive:
     DIALOGUE = 0

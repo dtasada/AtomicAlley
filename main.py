@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-from operator import lt
 import pygame
 import sys
-from pprint import pprint
 
 from pathlib import Path
 from typing import Dict
@@ -51,14 +49,14 @@ def main():
         Interactive(
             "Chest",
             Path("resources", "images", "chest.png"),
-            (0, 0),
+            (1, 1),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
         ),
         Interactive(
             "Workbench",
             Path("resources", "images", "workbench.png"),
-            (2, 2),
+            (4, 2),
             Interactive.MUT_STATE,
             target_state=States.WORKBENCH,
         ),
@@ -83,9 +81,6 @@ def main():
                         elif game.state == States.MENU:
                             game.set_state(States.PLAY)
 
-                    elif event.key == pygame.K_SPACE:
-                        player.dash()
-
         display.fill(Colors.GRAYS[50])
 
         player.scroll()
@@ -105,15 +100,22 @@ def main():
                 # pygame.draw.aacircle(display, Colors.RED, (blit_x, blit_y), 5)
                 display.blit(tiles[tile], (blit_x, blit_y))
 
-        for i in interactives:
-            i.update(player, interactives)
-
         for shadow in all_shadows:
             shadow.update()
 
+        for interactive in interactives:
+            if player.rect.bottom < interactive.rect.bottom:
+                interactive.update(player, interactives)
+
         player.update()
-        for button in buttons.values():
-            button.update()
+
+        for interactive in interactives:
+            if player.rect.bottom > interactive.rect.bottom:
+                interactive.update(player, interactives)
+
+        if game.state == States.MENU:
+            for button in buttons.values():
+                button.update()
 
         write(
             "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
@@ -121,6 +123,9 @@ def main():
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()
+
+        if game.dialogue:
+            game.dialogue.update()
 
         pygame.display.update()
         clock.tick(game.target_fps)

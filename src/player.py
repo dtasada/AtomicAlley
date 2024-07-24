@@ -99,6 +99,9 @@ class Player:
             self.animate_run = True
             bottom = True
 
+        if pygame.key.get_just_pressed()[pygame.K_SPACE]:
+            self.dash()
+
         # self.it = image type, e.g. topleft, bottom, etc.
         xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
         self.x += xvel

@@ -1,11 +1,8 @@
-import random
-import sys
 import pygame
 import itertools
 
 import pygame.gfxdraw
 from enum import Enum
-from types import LambdaType
 from typing import Any, Tuple
 from pathlib import Path
 from math import sqrt
@@ -83,6 +80,7 @@ def cart_dir_to_vel(
     bottomleft=False,
     m=1,
 ):
+    # TODO: Collision w/ objects
     xvel, yvel, it = 0, 0, None
     if topleft:
         top = left = True
