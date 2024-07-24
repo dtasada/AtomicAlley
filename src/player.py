@@ -84,8 +84,8 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-        left = right = top = bottom = False
         m = 0.05
+        left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
             left = True
@@ -167,11 +167,7 @@ class Player:
             self.current_frame = 0
             self.image = self.images[self.it][int(self.current_frame)]
 
-        if self.dash_x is None:
-            image = self.image
-        else:
-            image = self.image
-        display.blit(image, self.srect)
+        display.blit(self.image, self.srect)
 
     def get_dir_vector(self) -> v2:
         match self.it:
