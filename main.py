@@ -41,13 +41,20 @@ def main():
     buttons: Dict[str, Button] = {
         "b": ButtonToggle((100, 100), 24, "toggle", 10),
         "title": ButtonLabel(
-            (200, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
+            (100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
         ),
     }
 
-    tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
-    dg = Dialogue("Wow this alley really is atomic!", "Dexter")
+    interactives = [
+        Interactive(
+            Path("resources", "images", "chest.png"),
+            (0, 0),
+            Interactive.DIALOGUE,
+            dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
+        )
+    ]
 
+    # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
             if game.state == States.MENU:
@@ -63,8 +70,8 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         if game.state == States.PLAY:
                             game.set_state(States.MENU)
-                        elif game.state == States.PLAY:
-                            game.set_state(States.MENU)
+                        elif game.state == States.MENU:
+                            game.set_state(States.PLAY)
 
                     elif event.key == pygame.K_SPACE:
                         player.dash()
@@ -73,7 +80,7 @@ def main():
 
         player.scroll()
 
-        display.fill(Colors.GRAYS[50])
+        display.fill(Colors.LIGHT_GRAY)
 
         for pos, tile in world.data.items():
             x, y, z = pos
@@ -91,6 +98,7 @@ def main():
 
         for shadow in all_shadows:
             shadow.update()
+
         player.update()
         for button in buttons.values():
             button.update()
@@ -99,8 +107,6 @@ def main():
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()
-
-        # dg.update()
 
         pygame.display.update()
         clock.tick(game.target_fps)

@@ -36,7 +36,7 @@ class Player:
         self.srect = self.image.get_rect()
         self.yvel = 0
         self.animate_run = False
-        self.dash_x = self.dash_y = None
+        self.dash_x = self.dash_y = 0
         self.dashing = False
 
     def update(self):
@@ -76,22 +76,25 @@ class Player:
         xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=2)
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
+        self.last_shadow = 0
 
     def draw(self):
         if self.dashing:
             self.x += (self.dash_x - self.x) * 0.2
             self.y += (self.dash_y - self.y) * 0.2
-            if self.dash_x is not None:
-                diff_x = (abs(self.dash_x - self.x) / self.dash_x)
+            if self.dash_x != 0:
+                diff_x = abs(self.dash_x - self.x) / self.dash_x
             else:
                 diff_x = 0
-            if self.dash_y is not None:
-                diff_y = (abs(self.dash_y - self.y) / self.dash_y)
+            if self.dash_y != 0:
+                diff_y = abs(self.dash_y - self.y) / self.dash_y
             else:
                 diff_y = 0
-            all_shadows.append(PlayerShadow())
+            if ticks() - self.last_shadow >= 1:
+                all_shadows.append(PlayerShadow())
+                self.last_shadow = ticks()
             if diff_x <= 0.01 and diff_y <= 0.01:
-                self.dash_x = self.dash_y = None
+                self.dash_x = self.dash_y = 0
                 self.dashing = False
         #
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
@@ -121,7 +124,6 @@ class Player:
         else:
             image = self.image
         display.blit(image, self.srect)
-
 
 player = Player()
 
