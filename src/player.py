@@ -60,10 +60,12 @@ class Player:
             self.animate_run = True
             right = True
         if keys[pygame.K_w]:
+            self.animate_run = True
             top = True
         if keys[pygame.K_s]:
+            self.animate_run = True
             bottom = True
-            # self.it = image type, e.g. topleft, bottom, etc.
+        # self.it = image type, e.g. topleft, bottom, etc.
         xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
         self.x += xvel
         self.y += yvel
