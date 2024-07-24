@@ -19,7 +19,7 @@ tiles = [
         pygame.image.load(Path("resources", "images", "empty.png")), R
     ),
     pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile_g.png")), R
+        pygame.image.load(Path("resources", "images", "tile.png")), R
     ),
 ]
 
@@ -67,15 +67,15 @@ def main():
 
         player.scroll()
 
-        display.fill(Colors.GRAYS[50])
+        display.fill(Colors.LIGHT_GRAY)
 
         for pos, tile in world.data.items():
             x, y = pos
             # minimap
             mm_x = x * MMS
             mm_y = y * MMS
-            # pygame.draw.rect(display, (106, 190, 48), (mm_x, mm_y, MMS, MMS))
-            # pygame.draw.rect(display, WHITE, (mm_x, mm_y, MMS, MMS), 1)
+            pygame.draw.rect(display, (106, 190, 48), (mm_x, mm_y, MMS, MMS))
+            pygame.draw.rect(display, WHITE, (mm_x, mm_y, MMS, MMS), 1)
             if tile > 0:
                 blit_x, blit_y = cart_to_iso(x, y, 0)
                 # display.blit(pygame.font.SysFont("Times New Roman", 14).render(f"{x},{y}", True, BLACK), (blit_x, blit_y))
@@ -85,10 +85,6 @@ def main():
                 display.blit(tiles[tile], (blit_x, blit_y))
 
         player.update()
-        for button in buttons.values():
-            button.update()
-        
-        write("topleft", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], 5, 5)
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()

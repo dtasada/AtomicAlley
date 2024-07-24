@@ -37,7 +37,8 @@ class Player:
         self.rect = self.image.get_rect()
         self.srect = self.image.get_rect()
         self.yvel = 0
-        self.animate_run = False
+        self.moving = False
+        self.running = False
 
     def update(self):
         self.keys()
@@ -53,19 +54,25 @@ class Player:
         keys = pygame.key.get_pressed()
         left = right = top = bottom = False
         m = 0.05
+        self.running = False
+        self.moving = False
         mods = pygame.key.get_mods()
         if mods == 1:
+            self.running = True
             m *= 2
+            
         if keys[pygame.K_a]:
-            self.animate_run = True
             left = True
+            self.moving = True
         if keys[pygame.K_d]:
-            self.animate_run = True
             right = True
+            self.moving = True
         if keys[pygame.K_w]:
             top = True
+            self.moving = True
         if keys[pygame.K_s]:
             bottom = True
+            self.moving = True
         # self.it = image type, e.g. topleft, bottom, etc.
         if top:
             if left:
@@ -109,11 +116,11 @@ class Player:
         self.srect.x -= game.scroll[0]
         self.srect.y -= game.scroll[1]
 
-        if self.animate_run:
-            if self.current_frame > len(self.run_frames[self.it])-1:
+        if self.moving and self.running:
+            if self.current_frame >= len(self.run_frames[self.it]):
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
-            self.current_frame += 0.125
+            self.current_frame += 0.15
             self.animate_run = False
         else:
             self.current_frame = 0
