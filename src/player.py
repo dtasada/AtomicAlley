@@ -51,8 +51,8 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-        left = right = top = bottom = False
         m = 0.05
+        left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
             left = True
@@ -63,7 +63,7 @@ class Player:
             top = True
         if keys[pygame.K_s]:
             bottom = True
-        # self.it = image type, e.g. topleft, bottom, etc.
+            # self.it = image type, e.g. topleft, bottom, etc.
         xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
         self.x += xvel
         self.y += yvel
@@ -118,12 +118,7 @@ class Player:
         else:
             self.current_frame = 0
             self.image = self.images[self.it][int(self.current_frame)]
-        
-        if self.dash_x is None:
-            image = self.image
-        else:
-            image = self.image
-        display.blit(image, self.srect)
+        display.blit(self.image, self.srect)
 
 player = Player()
 

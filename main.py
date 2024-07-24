@@ -3,6 +3,7 @@
 import itertools
 import pygame
 import sys
+from pprint import pprint
 
 from pathlib import Path
 from typing import Dict
@@ -14,23 +15,20 @@ from src.player import *
 clock = pygame.time.Clock()
 
 tiles = [
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "empty.png")), R
-    ),
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile_g.png")), R
-    ),
+    imgload("resources", "images", "tile_g.png"),
+    imgload("resources", "images", "tile.png"),
 ]
 
 
 class World:
     def __init__(self):
-        keys = [x + (0,) for x in itertools.product(range(10), range(10))]
-        # keys.extend([
-        #     (5, 5, 1)
-        # ])
-        self.data = dict.fromkeys(keys, None)
-        self.data = {k: rand(1, 1) for k, v in self.data.items()}
+        keys = [x + (0,) for x in itertools.product(range(20), range(20))]
+        left_wall = [(0, y, z) for y in range(10) for z in range(10)]
+        right_wall = [(x, 0, z) for x in range(10) for z in range(10)]
+        map_ = keys + left_wall + right_wall
+        self.data = dict.fromkeys(map_, None)
+        self.data = {k: 0 for k in self.data}
+        self.data[(2, 2, 0)] = 1
 
 
 world = World()
@@ -80,20 +78,19 @@ def main():
 
         player.scroll()
 
-        display.fill(Colors.LIGHT_GRAY)
-
         for pos, tile in world.data.items():
             x, y, z = pos
             # minimap
             mm_x = x * MMS
             mm_y = y * MMS
-            pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
-            pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
-            if tile > 0:
+            # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
+            # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
+            if tile or True:
                 blit_x, blit_y = cart_to_iso(x, y, z)
                 # map
                 blit_x -= game.scroll[0]
                 blit_y -= game.scroll[1]
+                # pygame.draw.aacircle(display, Colors.RED, (blit_x, blit_y), 5)
                 display.blit(tiles[tile], (blit_x, blit_y))
 
         for shadow in all_shadows:
