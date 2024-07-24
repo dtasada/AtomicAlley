@@ -29,7 +29,7 @@ QS = 8 * R
 ORIGIN = (0, 0)
 
 BORDER_RADIUS = 8
-ANTI_ALIASING = False
+ANTI_ALIASING = True
 
 # Init
 pygame.init()
@@ -116,6 +116,13 @@ class ButtonToggle(Button):
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
+def write(orientation, text, font, color, x, y):
+    surf = font.render(str(text), True, color)
+    rect = surf.get_rect()
+    setattr(rect, orientation, (x, y))
+    display.blit(surf, rect)
+
+
 def gen_char():
     surf = pygame.Surface((10, 10), pygame.SRCALPHA)
     n = 0
@@ -186,11 +193,10 @@ class TextWriter:
             self.body_texs[floor(self.index)], self.body_rects[floor(self.index)]
         )
         # rounding bc floating point bs (apparently 0.0 + 0.1 = 0.100000000096)
+        # shut the fuck up pussy
         target = self.index + 0.25
         if target <= len(self.body_texs) - 1:
             self.index = target
-
-        print("target:", target)
 
 
 class Dialogue(TextWriter):
@@ -204,7 +210,6 @@ class Dialogue(TextWriter):
             (self.margin, display.get_height() - size[1] - self.margin),
             size,
         )
-
         self.speaker_tex = fonts[FontSize.SUBTITLE].render(
             self.speaker, ANTI_ALIASING, self.body_color
         )
@@ -214,21 +219,17 @@ class Dialogue(TextWriter):
                 display.get_height() - self.master_rect.height - self.margin / 2,
             )
         )
-
         super().__init__(  # careful not to overwrite anything here
             content,
             self.master_rect.topleft,
             FontSize.BODY,
             Colors.WHITE,
         )
-
         for rect in self.body_rects:
             rect.topleft = (
                 rect.left + self.margin,
                 self.speaker_rect.bottom + self.margin / 2,
             )
-
-        print(self.body_rects)
 
     def update(self):
         pygame.draw.rect(
