@@ -73,6 +73,7 @@ class Player:
         if keys[pygame.K_s]:
             bottom = True
             self.moving = True
+            
         # self.it = image type, e.g. topleft, bottom, etc.
         if top:
             if left:
