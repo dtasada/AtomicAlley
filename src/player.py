@@ -1,4 +1,5 @@
 from .engine import *
+from pygame.time import get_ticks as ticks
 
 
 class Player:
@@ -8,7 +9,7 @@ class Player:
         self.pos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
         self.blit_pos = (self.blit_x, self.blit_y)
-        self.idle = {
+        self.images = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
                 "resources",
                 "images",
@@ -172,6 +173,25 @@ class Player:
             image = self.image
         display.blit(image, self.srect)
 
+    def get_dir_vector(self) -> v2:
+        match self.it:
+            case "top":
+                return (0, 1)
+            case "topright":
+                return (1, 1)
+            case "right":
+                return (1, 0)
+            case "bottomright":
+                return (1, -1)
+            case "bottom":
+                return (0, -1)
+            case "bottomleft":
+                return (-1, -1)
+            case "left":
+                return (-1, 0)
+            case "topleft":
+                return (-1, 1)
+
 
 player = Player()
 
@@ -191,22 +211,3 @@ class PlayerShadow:
         display.blit(self.image, self.srect)
         if self.alpha <= 0:
             all_shadows.remove(self)
-
-    def get_dir_vector(self) -> v2:
-        match self.it:
-            case "top":
-                return (0, 1)
-            case "topright":
-                return (1, 1)
-            case "right":
-                return (1, 0)
-            case "bottomright":
-                return (1, -1)
-            case "bottom":
-                return (0, -1)
-            case "bottomleft":
-                return (-1, -1)
-            case "left":
-                return (-1, 0)
-            case "topleft":
-                return (-1, 1)
