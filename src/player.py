@@ -7,28 +7,51 @@ class Player:
     def __init__(self):
         self.x = 0
         self.y = 0
-        self.blit_x = self.blit_y = 0 
+        self.blit_x = self.blit_y = 0
         self.idle = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: 
-            imgload(
-            "resources", "images", "player_sheet.png", columns=7, row=i, rows=5, frames=1
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
+                "resources",
+                "images",
+                "player_sheet.png",
+                columns=7,
+                row=i,
+                rows=5,
+                frames=1,
             )
             for i in range(5)
         }
-        self.idle["left"] = [pygame.transform.flip(i, True, False) for i in self.idle["right"]]
-        self.idle["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.idle["bottomleft"]]
-        self.idle["topleft"] = [pygame.transform.flip(i, True, False) for i in self.idle["topright"]]
-        
+        self.idle["left"] = [
+            pygame.transform.flip(i, True, False) for i in self.idle["right"]
+        ]
+        self.idle["bottomright"] = [
+            pygame.transform.flip(i, True, False) for i in self.idle["bottomleft"]
+        ]
+        self.idle["topleft"] = [
+            pygame.transform.flip(i, True, False) for i in self.idle["topright"]
+        ]
+
         self.run_frames = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]:
-            imgload(
-            "resources", "images", "player_sheet.png", columns=7, row=i, rows=5, start_frame=1, frames=6
-            ) 
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
+                "resources",
+                "images",
+                "player_sheet.png",
+                columns=7,
+                row=i,
+                rows=5,
+                start_frame=1,
+                frames=6,
+            )
             for i in range(5)
         }
-        self.run_frames["left"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["right"]]
-        self.run_frames["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["bottomleft"]]
-        self.run_frames["topleft"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["topright"]]
+        self.run_frames["left"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["right"]
+        ]
+        self.run_frames["bottomright"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["bottomleft"]
+        ]
+        self.run_frames["topleft"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["topright"]
+        ]
 
         self.current_frame = 0
         self.it = "bottom"
@@ -45,8 +68,12 @@ class Player:
         self.draw()
 
     def scroll(self):
-        game.fake_scroll[0] += (self.rect.centerx - game.fake_scroll[0] - WIDTH // 2) * 0.1
-        game.fake_scroll[1] += (self.rect.centery - game.fake_scroll[1] - HEIGHT // 2) * 0.1
+        game.fake_scroll[0] += (
+            self.rect.centerx - game.fake_scroll[0] - WIDTH // 2
+        ) * 0.1
+        game.fake_scroll[1] += (
+            self.rect.centery - game.fake_scroll[1] - HEIGHT // 2
+        ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
 
@@ -60,7 +87,7 @@ class Player:
         if mods == 1:
             self.running = True
             m *= 2
-            
+
         if keys[pygame.K_a]:
             left = True
             self.moving = True

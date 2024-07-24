@@ -10,26 +10,7 @@ from typing import Dict
 from src.engine import *
 from src.player import *
 
-
-clock = pygame.time.Clock()
 player = Player()
-
-tiles = [
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "empty.png")), R
-    ),
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile.png")), R
-    ),
-]
-
-
-class World:
-    def __init__(self):
-        self.data = dict.fromkeys(itertools.product(range(10), range(10)), None)
-        self.data = {k: rand(1, 1) for k, v in self.data.items()}
-
-
 world = World()
 surfs = [gen_char() for _ in range(20)]
 
@@ -38,13 +19,20 @@ def main():
     buttons: Dict[str, Button] = {
         "b": ButtonToggle((100, 100), 24, "toggle", 10),
         "title": ButtonLabel(
-            (200, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
+            (100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
         ),
     }
 
-    tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
-    dg = Dialogue("Wow this alley really is atomic!", "Dexter")
+    interactives = [
+        Interactive(
+            Path("resources", "images", "chest.png"),
+            (0, 0),
+            Interactive.DIALOGUE,
+            dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
+        )
+    ]
 
+    # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
             if game.state == States.MENU:
@@ -60,8 +48,8 @@ def main():
                     if pygame.key.get_pressed()[pygame.K_ESCAPE]:
                         if game.state == States.PLAY:
                             game.set_state(States.MENU)
-                        elif game.state == States.PLAY:
-                            game.set_state(States.MENU)
+                        elif game.state == States.MENU:
+                            game.set_state(States.PLAY)
 
         display.fill(Colors.GRAYS[50])
 
@@ -84,12 +72,16 @@ def main():
                 blit_y -= game.scroll[1]
                 display.blit(tiles[tile], (blit_x, blit_y))
 
+        for i in interactives:
+            i.update(player)
+
         player.update()
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()
 
-        dg.update()
+        if game.dialogue:
+            game.dialogue.update()
 
         pygame.display.update()
         clock.tick(game.target_fps)
