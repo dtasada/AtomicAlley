@@ -7,7 +7,9 @@ class Player:
     def __init__(self):
         self.x = 0
         self.y = 0
+        self.pos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
+        self.blit_pos = (self.blit_x, self.blit_y)
         self.idle = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
                 "resources",
@@ -66,6 +68,9 @@ class Player:
     def update(self):
         self.keys()
         self.draw()
+
+        self.blit_pos = (self.blit_x, self.blit_y)
+        self.pos = (self.x, self.y)
 
     def scroll(self):
         game.fake_scroll[0] += (
@@ -154,3 +159,22 @@ class Player:
             self.image = self.idle[self.it][int(self.current_frame)]
 
         display.blit(self.image, self.srect)
+
+    def get_dir_vector(self) -> v2:
+        match self.it:
+            case "top":
+                return (0, 1)
+            case "topright":
+                return (1, 1)
+            case "right":
+                return (1, 0)
+            case "bottomright":
+                return (1, -1)
+            case "bottom":
+                return (0, -1)
+            case "bottomleft":
+                return (-1, -1)
+            case "left":
+                return (-1, 0)
+            case "topleft":
+                return (-1, 1)

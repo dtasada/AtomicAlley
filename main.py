@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
-import itertools
+from operator import lt
 import pygame
 import sys
 
 from pathlib import Path
 from typing import Dict
 
+from src.buttons import *
 from src.engine import *
+from src.objects import *
 from src.player import *
+from src.writers import *
 
 player = Player()
 world = World()
+# workbench_ui = WorkBenchUI()
 surfs = [gen_char() for _ in range(20)]
 
 
@@ -25,11 +29,19 @@ def main():
 
     interactives = [
         Interactive(
+            "Chest",
             Path("resources", "images", "chest.png"),
             (0, 0),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
-        )
+        ),
+        Interactive(
+            "Workbench",
+            Path("resources", "images", "workbench.png"),
+            (2, 2),
+            Interactive.MUT_STATE,
+            target_state=States.WORKBENCH,
+        ),
     ]
 
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
@@ -73,7 +85,7 @@ def main():
                 display.blit(tiles[tile], (blit_x, blit_y))
 
         for i in interactives:
-            i.update(player)
+            i.update(player, interactives)
 
         player.update()
         if game.state == States.MENU:
