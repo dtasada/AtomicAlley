@@ -155,17 +155,14 @@ def cart_to_iso(x, y, z):
     return (blit_x, blit_y)
 
 
-def imgload(*path_, frames=1, vertical=False, scale=R):
+def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame = 0, frames = 0):
     image = pygame.transform.scale_by(pygame.image.load(Path(*path_)), scale)
-    if frames > 1:
+    if frames > 0:
         ret = []
-        width = image.get_width() / frames
-        height = image.get_height() / frames
+        width = image.get_width() / columns
+        height = image.get_height() / rows
         for i in range(frames):
-            if vertical:
-                sub = image.subsurface(0, i * height, image.get_width(), height)
-            else:
-                sub = image.subsurface(i * width, 0, image.get_height(), height)
+            sub = image.subsurface(start_frame * width + i * width, row * height, width, height)
             ret.append(sub)
         return ret
     return image
@@ -202,9 +199,9 @@ class Dialogue(TextWriter):
         self.back_color = Colors.GRAYS[32]
         self.body_color = Colors.WHITE
         self.speaker = speaker  # speaker is the character that says the thing
-        size = (display.width - self.margin * 2, 320)
+        size = (display.get_width() - self.margin * 2, 320)
         self.master_rect = pygame.Rect(
-            (self.margin, display.height - size[1] - self.margin),
+            (self.margin, display.get_height() - size[1] - self.margin),
             size,
         )
 
@@ -214,7 +211,7 @@ class Dialogue(TextWriter):
         self.speaker_rect = self.speaker_tex.get_rect(
             topleft=(
                 self.margin * 2,
-                display.height - self.master_rect.height - self.margin / 2,
+                display.get_height() - self.master_rect.height - self.margin / 2,
             )
         )
 
