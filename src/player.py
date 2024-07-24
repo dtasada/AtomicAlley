@@ -8,16 +8,16 @@ class Player:
         self.x = 0
         self.y = 0
         self.blit_x = self.blit_y = 0 
-        self.images = {
+        self.idle = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: 
             imgload(
             "resources", "images", "player_sheet.png", columns=7, row=i, rows=5, frames=1
             )
             for i in range(5)
         }
-        self.images["left"] = [pygame.transform.flip(i, True, False) for i in self.images["right"]]
-        self.images["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.images["bottomleft"]]
-        self.images["topleft"] = [pygame.transform.flip(i, True, False) for i in self.images["topright"]]
+        self.idle["left"] = [pygame.transform.flip(i, True, False) for i in self.idle["right"]]
+        self.idle["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.idle["bottomleft"]]
+        self.idle["topleft"] = [pygame.transform.flip(i, True, False) for i in self.idle["topright"]]
         
         self.run_frames = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]:
@@ -32,7 +32,7 @@ class Player:
 
         self.current_frame = 0
         self.it = "bottom"
-        self.image = self.images[self.it][self.current_frame]
+        self.image = self.idle[self.it][self.current_frame]
         self.width, self.height = self.image.get_size()
         self.rect = self.image.get_rect()
         self.srect = self.image.get_rect()
@@ -110,10 +110,10 @@ class Player:
             if self.current_frame > len(self.run_frames[self.it])-1:
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
-            self.current_frame += 0.15
+            self.current_frame += 0.125
             self.animate_run = False
         else:
             self.current_frame = 0
-            self.image = self.images[self.it][int(self.current_frame)]
+            self.image = self.idle[self.it][int(self.current_frame)]
 
         display.blit(self.image, self.srect)
