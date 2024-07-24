@@ -12,7 +12,6 @@ from src.player import *
 
 
 clock = pygame.time.Clock()
-player = Player()
 
 tiles = [
     pygame.transform.scale_by(
@@ -26,7 +25,11 @@ tiles = [
 
 class World:
     def __init__(self):
-        self.data = dict.fromkeys(itertools.product(range(10), range(10)), None)
+        keys = [x + (0,) for x in itertools.product(range(10), range(10))]
+        # keys.extend([
+        #     (5, 5, 1)
+        # ])
+        self.data = dict.fromkeys(keys, None)
         self.data = {k: rand(1, 1) for k, v in self.data.items()}
 
 
@@ -57,11 +60,14 @@ def main():
                     sys.exit()
 
                 case pygame.KEYDOWN:
-                    if pygame.key.get_pressed()[pygame.K_ESCAPE]:
+                    if event.key == pygame.K_ESCAPE:
                         if game.state == States.PLAY:
                             game.set_state(States.MENU)
                         elif game.state == States.PLAY:
                             game.set_state(States.MENU)
+
+                    elif event.key == pygame.K_SPACE:
+                        player.dash()
 
         display.fill(Colors.GRAYS[50])
 
@@ -70,30 +76,31 @@ def main():
         display.fill(Colors.GRAYS[50])
 
         for pos, tile in world.data.items():
-            x, y = pos
+            x, y, z = pos
             # minimap
             mm_x = x * MMS
             mm_y = y * MMS
-            # pygame.draw.rect(display, (106, 190, 48), (mm_x, mm_y, MMS, MMS))
-            # pygame.draw.rect(display, WHITE, (mm_x, mm_y, MMS, MMS), 1)
+            pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
+            pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
             if tile > 0:
-                blit_x, blit_y = cart_to_iso(x, y, 0)
-                # display.blit(pygame.font.SysFont("Times New Roman", 14).render(f"{x},{y}", True, BLACK), (blit_x, blit_y))
+                blit_x, blit_y = cart_to_iso(x, y, z)
                 # map
                 blit_x -= game.scroll[0]
                 blit_y -= game.scroll[1]
                 display.blit(tiles[tile], (blit_x, blit_y))
 
+        for shadow in all_shadows:
+            shadow.update()
         player.update()
         for button in buttons.values():
             button.update()
         
-        write("topleft", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], 5, 5)
+        write("topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5)
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()
 
-        dg.update()
+        # dg.update()
 
         pygame.display.update()
         clock.tick(game.target_fps)

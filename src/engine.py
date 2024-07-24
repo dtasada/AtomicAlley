@@ -1,20 +1,14 @@
 import random
 import pygame
-
 import pygame.gfxdraw
-
+import time
 from enum import Enum
 from types import LambdaType
 from typing import Tuple
 from pathlib import Path
+from math import floor, sqrt
+from random import randint as rand, choice
 
-from math import floor
-from random import randint as rand
-
-
-BLACK = (0, 0, 0)
-LIGHT_GRAY = (200, 200, 200)
-WHITE = (255, 255, 255)
 
 # Types
 v2 = Tuple[float, float]
@@ -22,6 +16,8 @@ v2 = Tuple[float, float]
 # Constants
 WIDTH, HEIGHT = 1280, 720
 MMS = 16
+HMMS = MMS / 2
+QMMS = MMS / 4
 R = 3
 S = 32 * R
 HS = 16 * R
@@ -30,6 +26,8 @@ ORIGIN = (0, 0)
 
 BORDER_RADIUS = 8
 ANTI_ALIASING = True
+
+all_shadows = []
 
 # Init
 pygame.init()
@@ -116,6 +114,57 @@ class ButtonToggle(Button):
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
+def cart_dir_to_vel(left, right, top, bottom, topleft=False, topright=False, bottomright=False, bottomleft=False, m=1):
+    xvel, yvel, it = 0, 0, None
+    if topleft:
+        top = left = True
+    if topright:
+        top = right = True
+    if bottomright:
+        bottom = right = True
+    if bottomleft:
+        bottom = left = True
+    if top:
+        if left:
+            xvel = -m
+            it = "topleft"
+        elif right:
+            yvel = -m
+            it = "topright"
+        else:
+            xvel = -m * sqrt(0.5)
+            yvel = -m * sqrt(0.5)
+            it = "top"
+    elif bottom:
+        if left:
+            yvel = m
+            it = "bottomleft"
+        elif right:
+            xvel = m
+            it = "bottomright"
+        else:
+            xvel = m * sqrt(0.5)
+            yvel = m * sqrt(0.5)
+            it = "bottom"
+    elif left:
+        xvel = -m * sqrt(0.5)
+        yvel = m * sqrt(0.5)
+        it = "left"
+    elif right:
+        xvel = m * sqrt(0.5)
+        yvel = -m * sqrt(0.5)
+        it = "right"
+    return xvel, yvel, it
+
+
+def sign(n):
+    if n > 0:
+        return 1
+    if n < 0:
+        return -1
+    return 0
+
+
 def write(orientation, text, font, color, x, y):
     surf = font.render(str(text), True, color)
     rect = surf.get_rect()
@@ -156,14 +205,24 @@ def gen_char():
     return surf
 
 
+def to_shadow(img):
+    return pygame.mask.from_surface(img).to_surface(setcolor=Colors.BLACK, unsetcolor=None)
+
+
 def cart_to_iso(x, y, z):
     blit_x = ORIGIN[0] + x * HS - y * HS
     blit_y = ORIGIN[1] + x * QS + y * QS - z * HS
     return (blit_x, blit_y)
 
 
+def cart_to_mm(x, y, z):
+    blit_x = x * MMS
+    blit_y = y * MMS
+    return (blit_x, blit_y)
+
+
 def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame = 0, frames = 0):
-    image = pygame.transform.scale_by(pygame.image.load(Path(*path_)), scale)
+    image = pygame.transform.scale_by(pygame.image.load(Path(*path_)).convert_alpha(), scale)
     if frames > 0:
         ret = []
         width = image.get_width() / columns
