@@ -255,7 +255,7 @@ def cart_to_mm(x, y, z):
     blit_y = y * MMS
     return (blit_x, blit_y)
 
-
+#columns: columns in the spritesheet, row: which row in de spritesheet, rows: rows in the spritesheet, start_frame: column of first frame
 def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame = 0, frames = 0):
     image = pygame.transform.scale_by(pygame.image.load(Path(*path_)).convert_alpha(), scale)
     if frames > 0:
