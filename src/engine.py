@@ -2,14 +2,12 @@ import pygame
 import itertools
 
 import pygame.gfxdraw
-from enum import Enum
-from typing import Any, Tuple
-from pathlib import Path
-from math import sqrt
-from random import randint as rand
 
 from math import sqrt
 from random import randint as rand
+from pathlib import Path
+from enum import Enum
+from typing import Any, Tuple
 
 # Types
 v2 = Tuple[float, float]
@@ -32,7 +30,7 @@ def v2_len(v) -> float:
 
 
 # Constants
-WIDTH, HEIGHT = 1280, 720
+# Map
 MMS = 16
 HMMS = MMS / 2
 QMMS = MMS / 4
@@ -43,6 +41,8 @@ HS = S / 2
 QS = S / 4
 ORIGIN = (0, 0)
 
+# UI
+GRID_SIZE = 32
 BORDER_RADIUS = 8
 ANTI_ALIASING = True
 
@@ -61,10 +61,10 @@ underlines = [
 ]
 tiles = [
     pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "empty.png")), R
+        pygame.image.load(Path("resources", "images", "tiles", "empty.png")), R
     ),
     pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile.png")), R
+        pygame.image.load(Path("resources", "images", "tiles", "tile.png")), R
     ),
 ]
 
@@ -207,7 +207,7 @@ def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame=0, frames=0):
 
 
 class Game:
-    def __init__(self) -> None:
+    def __init__(self):
         self.running = True
         self.target_fps = 60
         self.state = States.PLAY
@@ -234,6 +234,7 @@ class States(Enum):
 
 
 class FontSize:
+    SMALL = 28
     BODY = 36
     SUBTITLE = 40
     DIALOGUE = 42
@@ -250,5 +251,5 @@ class Colors:
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((WIDTH, HEIGHT))
+display = pygame.display.set_mode((1280, 720))
 game = Game()

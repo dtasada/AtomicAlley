@@ -6,7 +6,7 @@ import random
 
 
 class Button:
-    def __init__(self, pos: v2, size: int, text) -> None:
+    def __init__(self, pos: v2, size: int, text):
         self.text = fonts[size].render(text, True, Colors.WHITE)
         self.text_rect = self.text.get_rect(topleft=pos)
         self.underline = pygame.transform.scale(
@@ -26,7 +26,7 @@ class Button:
 
 
 class ButtonLabel(Button):
-    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
+    def __init__(self, pos: v2, font_size: int, text, do: LambdaType):
         super().__init__(pos, font_size, text)
         self.do = do
 

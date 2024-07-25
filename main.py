@@ -4,20 +4,21 @@ import pygame
 import sys
 
 from pathlib import Path
-from typing import Dict
 
+from src.artifacts import *
 from src.buttons import *
 from src.engine import *
 from src.objects import *
 from src.player import *
+from src.uis import *
 from src.writers import *
 
 
 clock = pygame.time.Clock()
 
 tiles = [
-    imgload("resources", "images", "tile_g.png"),
-    imgload("resources", "images", "tile.png"),
+    imgload("resources", "images", "tiles", "tile_g.png"),
+    imgload("resources", "images", "tiles", "tile.png"),
 ]
 
 
@@ -33,12 +34,11 @@ class World:
 
 
 world = World()
-# workbench_ui = WorkBenchUI()
 surfs = [gen_char() for _ in range(20)]
 
 
 def main():
-    buttons: Dict[str, Button] = {
+    buttons = {
         "b": ButtonToggle((100, 100), 24, "toggle", 10),
         "title": ButtonLabel(
             (100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
@@ -48,18 +48,20 @@ def main():
     interactives = [
         Interactive(
             "Chest",
-            Path("resources", "images", "chest.png"),
+            Path("resources", "images", "tiles", "chest.png"),
             (1, 1),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
         ),
         Interactive(
             "Workbench",
-            Path("resources", "images", "workbench.png"),
+            Path("resources", "images", "tiles", "workbench.png"),
             (4, 2),
             Interactive.MUT_STATE,
             target_state=States.WORKBENCH,
+            other_lambda=lambda: workbench_ui.gen_grid(),
         ),
+        Artifacts.TONIC_OF_LIFE().to_world((6, 6)),
     ]
 
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
@@ -76,10 +78,13 @@ def main():
 
                 case pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        if game.state == States.PLAY:
-                            game.set_state(States.MENU)
-                        elif game.state == States.MENU:
-                            game.set_state(States.PLAY)
+                        match game.state:
+                            case States.PLAY:
+                                game.set_state(States.MENU)
+                            case States.MENU:
+                                game.set_state(States.PLAY)
+                            case States.WORKBENCH:
+                                game.set_state(States.PLAY)
 
         display.fill(Colors.GRAYS[50])
 
@@ -104,25 +109,25 @@ def main():
             shadow.update()
 
         for interactive in interactives:
-            if player.rect.bottom < interactive.rect.bottom:
-                interactive.update(player, interactives)
+            interactive.update(player, interactives)
 
         player.update()
 
-        for interactive in interactives:
-            if player.rect.bottom > interactive.rect.bottom:
-                interactive.update(player, interactives)
-
-        if game.state == States.MENU:
-            for button in buttons.values():
-                button.update()
-
         write(
-            "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
+            "topright",
+            int(clock.get_fps()),
+            fonts[25],
+            Colors.GRAYS[200],
+            display.width - 9,
+            5,
         )
-        if game.state == States.MENU:
-            for button in buttons.values():
-                button.update()
+
+        match game.state:
+            case States.MENU:
+                for button in buttons.values():
+                    button.update()
+            case States.WORKBENCH:
+                workbench_ui.update()
 
         if game.dialogue:
             game.dialogue.update()
