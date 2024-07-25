@@ -29,12 +29,8 @@ class World:
         # map_ = keys + left_wall + right_wall
         map_ = []
         self.data = dict.fromkeys(map_, None)
-<<<<<<< HEAD
-        self.data = {k: 1 for k in self.data}
-=======
         self.data = {k: 0 for k in self.data}
         self.light_data = {k: randf(0.6, 1) for k, v in self.data.items()}
->>>>>>> f39078f7e2cc3101a61e7c117047c5b7fad2f09b
         self.data[(2, 2, 0)] = 1
 
 
@@ -55,12 +51,31 @@ for leaf in head.get_leaves():
 world.data = {data[:3]: data[3] for data in poss}
 
 def main():
-    buttons: Dict[str, Button] = {
-        "b": ButtonToggle((100, 100), 24, "toggle", 10),
-        "title": ButtonLabel(
-            (100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
-        ),
+    buttons = {
+        States.MENU: [
+            ButtonToggle(
+                (100, 100), 
+                40,
+                "toggle",
+                10
+            ),
+            ButtonLabel(
+                (100, 200),
+                20, 
+                "BOTH", 
+                lambda: game.set_state(States.PLAY)
+            ),
+        ],
+        States.MAIN_MENU: [
+            ButtonLabel(
+                (WIDTH/2, HEIGHT/2), 
+                100, 
+                "PLAY", 
+                lambda: game.set_state(States.PLAY)
+            ),
+        ]
     }
+
 
     interactives = [
         Interactive(
@@ -83,7 +98,7 @@ def main():
     while game.running:
         for event in pygame.event.get():
             if game.state == States.MENU:
-                for button in buttons.values():
+                for button in buttons[States.MENU]:
                     button.process_event(event)
 
             match event.type:
@@ -119,15 +134,11 @@ def main():
         for shadow in all_shadows:
             shadow.update()
 
-        for button in buttons.values():
-            button.update()
-
         for leaf in head.get_leaves():
             pygame.draw.rect(display, leaf.color, leaf.border)
             pygame.draw.rect(display, Colors.BLACK, leaf.room)
         head.draw_paths()
         player.update()
-
 
         write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, WIDTH - 9, 5)
         for interactive in interactives:
@@ -140,15 +151,12 @@ def main():
             if player.rect.bottom > interactive.rect.bottom:
                 interactive.update(player, interactives)
 
-        if game.state == States.MENU:
-            for button in buttons.values():
-                button.update()
-
         write(
            display,  "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
         )
+
         if game.state == States.MENU:
-            for button in buttons.values():
+            for button in buttons[States.MENU]:
                 button.update()
 
         if game.dialogue:

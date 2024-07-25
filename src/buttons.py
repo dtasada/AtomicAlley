@@ -79,3 +79,4 @@ class ButtonToggle(Button):
 
         if self.enabled:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
+
