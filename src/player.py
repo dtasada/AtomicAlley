@@ -51,7 +51,7 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-        m = 0.05
+        m = 0.08
         left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
@@ -75,7 +75,7 @@ class Player:
     def dash(self):
         self.dashing = True
         kwargs = {x: self.it == x for x in ("top", "topright", "right", "bottomright", "bottom", "bottomleft", "left", "topleft")}
-        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=2)
+        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=3)
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
         self.last_shadow = 0
@@ -101,7 +101,7 @@ class Player:
         #
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
         mm_x, mm_y = cart_to_mm(self.x, self.y, 0)
-        pygame.draw.rect(display, Colors.RED, (mm_x, mm_y, MMS, MMS))
+        pygame.gfxdraw.filled_circle(display, int(mm_x), int(mm_y), 4, Colors.RED)
         self.blit_x += S / 2
         self.blit_y += S / 4
         #
