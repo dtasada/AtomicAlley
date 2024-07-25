@@ -1,10 +1,11 @@
 import pygame
-import itertools
-
 import pygame.gfxdraw
+
+import random
 
 from math import sqrt
 from random import randint as rand
+
 from pathlib import Path
 from enum import Enum
 from typing import Any, Tuple
@@ -30,8 +31,7 @@ def v2_len(v) -> float:
 
 
 # Constants
-# Map
-MMS = 16
+MMS = 1
 HMMS = MMS / 2
 QMMS = MMS / 4
 R = 3
@@ -69,6 +69,92 @@ tiles = [
 ]
 
 
+class Button:
+    def __init__(self, pos: v2, size: int, text) -> None:
+        self.text = fonts[size].render(text, True, Colors.WHITE)
+        self.text_rect = self.text.get_rect(topleft=pos)
+        self.underline = pygame.transform.scale(
+            random.choice(underlines),
+            (self.text_rect.width, self.text_rect.width * 0.2),
+        )
+        self.underline_rect = self.underline.get_rect(
+            topleft=(self.text_rect.left, self.text_rect.bottom)
+        )
+
+    def update(self):
+        display.blit(self.text, self.text_rect)
+        if self.text_rect.collidepoint(pygame.mouse.get_pos()):
+            display.blit(self.underline, self.underline_rect)
+
+    def process_event(self, event) -> None: ...
+
+
+class ButtonLabel(Button):
+    def __init__(self, pos: v2, font_size: int, text, do) -> None:
+        super().__init__(pos, font_size, text)
+        self.do = do
+
+    def process_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.text_rect.collidepoint(pygame.mouse.get_pos()):
+                self.do()
+
+
+class ButtonToggle(Button):
+    def __init__(self, pos: v2, size: int, text, text_offset: int, enabled=False):
+        super().__init__(pos, size, text)
+
+        self.button_surf = pygame.surface.Surface((size, size))
+        self.button_surf.fill(Colors.WHITE)
+        self.button_rect = pygame.Rect(pos, (size, size))
+
+        self.underline_rect.left = self.button_rect.right + 8
+
+        self.text_rect = pygame.Rect(
+            self.button_rect.right + text_offset,
+            self.button_rect.top - 4,  # - 4 is to compensate font vertical padding
+            *self.text.get_size(),
+        )
+
+        self.enabled = enabled
+
+        self.combi_rect = pygame.Rect(
+            self.button_rect.left,
+            self.button_rect.top,
+            self.button_rect.width + text_offset + self.text_rect.width,
+            self.button_rect.height,
+        )
+
+    def process_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.combi_rect.collidepoint(pygame.mouse.get_pos()):
+                self.enabled = not self.enabled
+
+    def update(self):
+        pygame.draw.rect(
+            display,
+            Colors.WHITE,
+            self.button_rect,
+            width=1,
+            border_radius=BORDER_RADIUS,
+        )
+
+        super().update()
+
+        if self.enabled:
+            pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
+
+
+def darken(img, m):
+    ret = img.copy()
+    black = pygame.Surface(img.size).convert_alpha()
+    black.fill(Colors.BLACK)
+    black.set_alpha(m * 255)
+    img.blit(black, (0, 0))
+    ret.blit(black, (0, 0))
+    return ret
+
+
 def cart_dir_to_vel(
     left,
     right,
@@ -81,6 +167,7 @@ def cart_dir_to_vel(
     m=1,
 ):
     # TODO: Collision w/ objects
+    # TODO: it's not handled here
     xvel, yvel, it = 0, 0, None
     if topleft:
         top = left = True
@@ -131,7 +218,7 @@ def sign(n):
     return 0
 
 
-def write(orientation, text, font, color, x, y):
+def write(display, orientation, text, font, color, x, y):
     surf = font.render(str(text), True, color)
     rect = surf.get_rect()
     setattr(rect, orientation, (x, y))
@@ -220,12 +307,6 @@ class Game:
         self.state = target_state
 
 
-class World:
-    def __init__(self):
-        self.data = dict.fromkeys(itertools.product(range(10), range(10)), None)
-        self.data = {k: rand(1, 1) for k, v in self.data.items()}
-
-
 class States(Enum):
     MENU = 0
     SETTINGS = 1
@@ -253,3 +334,90 @@ class Colors:
 clock = pygame.time.Clock()
 display = pygame.display.set_mode((1280, 720))
 game = Game()
+
+
+class Node:
+    def __init__(self, border):
+        self.border = border
+        self.left = None
+        self.right = None
+        self.level = 0
+        self.color = [rand(0, 255) for _ in range(3)]
+
+    def __str__(self):
+        return f"Node[{self.level}][{self.x}, {self.y}, {self.w}, {self.h}]"
+
+    @property
+    def x(self):
+        return self.border[0]
+
+    @property
+    def y(self):
+        return self.border[1]
+
+    @property
+    def w(self):
+        return self.border[2]
+
+    @property
+    def h(self):
+        return self.border[3]
+
+    @property
+    def center(self):
+        return [self.x + self.w / 2, self.y + self.h / 2]
+
+    def get_leaves(self):
+        if self.left is None and self.right is None:
+            yield self
+        if self.left is not None:
+            for leaf in self.left.get_leaves():
+                yield leaf
+        if self.right is not None:
+            for leaf in self.right.get_leaves():
+                yield leaf
+
+    def draw_paths(self):
+        if self.left is None or self.right is None:
+            return
+        pygame.draw.line(display, Colors.BLACK, self.left.center, self.right.center, 4)
+        self.left.draw_paths()
+        self.right.draw_paths()
+
+    def split(self, level):
+        self.level = level + 1
+        if self.level == 5:
+            p = 0.3
+            topleft = (
+                rand(self.x + 1, self.x + int(self.w * p)),
+                rand(self.y + 1, self.y + int(self.h * p)),
+            )
+            bottomright = (
+                rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w),
+                rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h),
+            )
+            w = bottomright[0] - topleft[0]
+            h = bottomright[1] - topleft[1]
+            self.room = [*topleft, w, h]
+            return
+        cur_level = self.level
+        if rand(0, 1) == 0:
+            # horizontal split
+            height = int(rand(int(self.h * 0.3), int(self.h * 0.7)))
+            self.left = Node([self.x, self.y, self.w, height])
+            self.right = Node([self.x, self.y + height, self.w, self.h - height])
+            if self.left.h / self.left.w < 0.45 or self.right.h / self.right.w < 0.45:
+                self.split(cur_level - 1)
+                return
+            self.left.split(cur_level)
+            self.right.split(cur_level)
+        else:
+            # vertical split
+            width = int(rand(int(self.w * 0.3), int(self.w * 0.7)))
+            self.left = Node([self.x, self.y, width, self.h])
+            self.right = Node([self.x + width, self.y, self.w - width, self.h])
+            if self.left.w / self.left.h < 0.45 or self.right.w / self.right.h < 0.45:
+                self.split(cur_level - 1)
+                return
+            self.left.split(cur_level)
+            self.right.split(cur_level)
