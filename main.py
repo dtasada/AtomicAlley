@@ -16,19 +16,25 @@ from src.writers import *
 clock = pygame.time.Clock()
 
 tiles = [
-    imgload("resources", "images", "tile_g.png"),
-    imgload("resources", "images", "tile.png"),
+    imgload("resources", "images", "tile_0.png"),
+    imgload("resources", "images", "tile_1.png"),
 ]
 
 
 class World:
     def __init__(self):
-        keys = [x + (0,) for x in itertools.product(range(20), range(20))]
-        left_wall = [(0, y, z) for y in range(10) for z in range(10)]
-        right_wall = [(x, 0, z) for x in range(10) for z in range(10)]
-        map_ = keys + left_wall + right_wall
+        # keys = [x + (0,) for x in itertools.product(range(20), range(20))]
+        # left_wall = [(0, y, z) for y in range(20) for z in range(10)]
+        # right_wall = [(x, 0, z) for x in range(20) for z in range(10)]
+        # map_ = keys + left_wall + right_wall
+        map_ = []
         self.data = dict.fromkeys(map_, None)
+<<<<<<< HEAD
         self.data = {k: 1 for k in self.data}
+=======
+        self.data = {k: 0 for k in self.data}
+        self.light_data = {k: randf(0.6, 1) for k, v in self.data.items()}
+>>>>>>> f39078f7e2cc3101a61e7c117047c5b7fad2f09b
         self.data[(2, 2, 0)] = 1
 
 
@@ -36,6 +42,17 @@ world = World()
 # workbench_ui = WorkBenchUI()
 surfs = [gen_char() for _ in range(20)]
 
+head = Node([0, 0, 200, 200])
+head.split(-1)
+
+poss = []
+for leaf in head.get_leaves():
+    for xo in range(leaf.room[2]):
+        for yo in range(leaf.room[3]):
+            poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, 0))
+            if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
+                poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 1, 1))
+world.data = {data[:3]: data[3] for data in poss}
 
 def main():
     buttons: Dict[str, Button] = {
@@ -97,12 +114,22 @@ def main():
                 # map
                 blit_x -= game.scroll[0]
                 blit_y -= game.scroll[1]
-                # pygame.draw.aacircle(display, Colors.RED, (blit_x, blit_y), 5)
                 display.blit(tiles[tile], (blit_x, blit_y))
 
         for shadow in all_shadows:
             shadow.update()
 
+        for button in buttons.values():
+            button.update()
+
+        for leaf in head.get_leaves():
+            pygame.draw.rect(display, leaf.color, leaf.border)
+            pygame.draw.rect(display, Colors.BLACK, leaf.room)
+        head.draw_paths()
+        player.update()
+
+
+        write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, WIDTH - 9, 5)
         for interactive in interactives:
             if player.rect.bottom < interactive.rect.bottom:
                 interactive.update(player, interactives)
@@ -118,7 +145,7 @@ def main():
                 button.update()
 
         write(
-            "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
+           display,  "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
         )
         if game.state == States.MENU:
             for button in buttons.values():
@@ -128,7 +155,7 @@ def main():
             game.dialogue.update()
 
         pygame.display.update()
-        clock.tick(game.target_fps)
+        dt = clock.tick(game.target_fps) / (1 / game.target_fps)
 
 
 if __name__ == "__main__":

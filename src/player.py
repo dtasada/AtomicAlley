@@ -84,7 +84,11 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
+<<<<<<< HEAD
         m = 0.1
+=======
+        m = 0.08
+>>>>>>> f39078f7e2cc3101a61e7c117047c5b7fad2f09b
         left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
@@ -150,7 +154,7 @@ class Player:
         #
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
         mm_x, mm_y = cart_to_mm(self.x, self.y, 0)
-        pygame.draw.rect(display, Colors.RED, (mm_x, mm_y, MMS, MMS))
+        pygame.gfxdraw.filled_circle(display, int(mm_x), int(mm_y), 4, Colors.RED)
         self.blit_x += S / 2
         self.blit_y += S / 4
         #
