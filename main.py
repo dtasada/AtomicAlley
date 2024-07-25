@@ -2,13 +2,15 @@
 
 import pygame
 import sys
-from pprint import pprint
 
 from pathlib import Path
 from typing import Dict
 
+from src.buttons import *
 from src.engine import *
+from src.objects import *
 from src.player import *
+from src.writers import *
 
 
 clock = pygame.time.Clock()
@@ -33,6 +35,7 @@ class World:
 
 
 world = World()
+# workbench_ui = WorkBenchUI()
 surfs = [gen_char() for _ in range(20)]
 
 head = Node([0, 0, 200, 200])
@@ -57,11 +60,19 @@ def main():
 
     interactives = [
         Interactive(
+            "Chest",
             Path("resources", "images", "chest.png"),
-            (0, 0),
+            (1, 1),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
-        )
+        ),
+        Interactive(
+            "Workbench",
+            Path("resources", "images", "workbench.png"),
+            (4, 2),
+            Interactive.MUT_STATE,
+            target_state=States.WORKBENCH,
+        ),
     ]
 
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
@@ -82,9 +93,6 @@ def main():
                             game.set_state(States.MENU)
                         elif game.state == States.MENU:
                             game.set_state(States.PLAY)
-
-                    elif event.key == pygame.K_SPACE:
-                        player.dash()
 
         display.fill(Colors.GRAYS[50])
 
@@ -118,9 +126,29 @@ def main():
 
 
         write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, WIDTH - 9, 5)
+        for interactive in interactives:
+            if player.rect.bottom < interactive.rect.bottom:
+                interactive.update(player, interactives)
+
+        player.update()
+
+        for interactive in interactives:
+            if player.rect.bottom > interactive.rect.bottom:
+                interactive.update(player, interactives)
+
         if game.state == States.MENU:
             for button in buttons.values():
                 button.update()
+
+        write(
+           display,  "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
+        )
+        if game.state == States.MENU:
+            for button in buttons.values():
+                button.update()
+
+        if game.dialogue:
+            game.dialogue.update()
 
         pygame.display.update()
         dt = clock.tick(game.target_fps) / (1 / game.target_fps)

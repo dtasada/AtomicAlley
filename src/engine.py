@@ -1,21 +1,18 @@
-import random
-import sys
 import pygame
 import itertools
 
 import pygame.gfxdraw
-from pygame.time import get_ticks as ticks
-import time
 from enum import Enum
-from types import LambdaType
-from typing import Tuple
+from typing import Any, Tuple
 from pathlib import Path
 from math import floor, sqrt
 from random import randint as rand, uniform as randf, choice
-
 from math import floor, sqrt
 from random import randint as rand
-
+from math import sqrt
+from random import randint as rand
+from math import sqrt
+from random import randint as rand
 
 
 # Types
@@ -28,6 +25,10 @@ def v2_add(a, b) -> v2:
 
 def v2_sub(a, b) -> v2:
     return (a[0] - b[0], a[1] - b[1])
+
+
+def v2_dot(a, b) -> float:
+    return a[0] * b[0] + a[1] * b[1]
 
 
 def v2_len(v) -> float:
@@ -77,7 +78,7 @@ class Button:
         self.text = fonts[size].render(text, True, Colors.WHITE)
         self.text_rect = self.text.get_rect(topleft=pos)
         self.underline = pygame.transform.scale(
-            random.choice(underlines),
+            choice(underlines),
             (self.text_rect.width, self.text_rect.width * 0.2),
         )
         self.underline_rect = self.underline.get_rect(
@@ -93,7 +94,7 @@ class Button:
 
 
 class ButtonLabel(Button):
-    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
+    def __init__(self, pos: v2, font_size: int, text, do) -> None:
         super().__init__(pos, font_size, text)
         self.do = do
 
@@ -158,7 +159,19 @@ def darken(img, m):
     return ret
 
 
-def cart_dir_to_vel(left, right, top, bottom, topleft=False, topright=False, bottomright=False, bottomleft=False, m=1):
+def cart_dir_to_vel(
+    left,
+    right,
+    top,
+    bottom,
+    topleft=False,
+    topright=False,
+    bottomright=False,
+    bottomleft=False,
+    m=1,
+):
+    # TODO: Collision w/ objects
+    # TODO: it's not handled here
     xvel, yvel, it = 0, 0, None
     if topleft:
         top = left = True
@@ -250,7 +263,9 @@ def gen_char():
 
 
 def to_shadow(img):
-    return pygame.mask.from_surface(img).to_surface(setcolor=Colors.BLACK, unsetcolor=None)
+    return pygame.mask.from_surface(img).to_surface(
+        setcolor=Colors.BLACK, unsetcolor=None
+    )
 
 
 def cart_to_iso(x, y, z):
@@ -265,8 +280,10 @@ def cart_to_mm(x, y, z):
     return (blit_x, blit_y)
 
 
-def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame = 0, frames = 0):
-    image = pygame.transform.scale_by(pygame.image.load(Path(*path_)).convert_alpha(), scale)
+def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame=0, frames=0):
+    image = pygame.transform.scale_by(
+        pygame.image.load(Path(*path_)).convert_alpha(), scale
+    )
     if frames > 0:
         ret = []
         width = image.get_width() / columns
@@ -280,130 +297,6 @@ def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame = 0, frames =
     return image
 
 
-class TextWriter:
-    def __init__(
-        self, content, pos, font_size, color, anchor="topleft", writer_speed=0.25
-    ):
-        self.index = 0.0
-        self.show = True
-        self.writer_speed = writer_speed
-        self.font_size = font_size
-        self.body_pos = pos
-        self.body_texs = [
-            fonts[font_size].render(
-                content[:i] + "_" if i < len(content) else content[:i], False, color
-            )
-            for i in range(len(content) + 1)
-        ]
-        self.body_rects = [
-            self.body_texs[i].get_rect() for i in range(len(self.body_texs))
-        ]
-        [setattr(br, anchor, pos) for br in self.body_rects]
-
-    def start(self):
-        self.show = True
-
-    def kill(self):
-        self.index = 0
-        self.show = False
-
-    def update(self):
-        if pygame.key.get_just_pressed()[pygame.K_SPACE]:
-            if self.index < len(self.body_texs) - 1:
-                self.index = len(self.body_texs) - 1
-            else:
-                self.kill()
-
-        display.blit(
-            self.body_texs[floor(self.index)], self.body_rects[floor(self.index)]
-        )
-        # rounding bc floating point bs (apparently 0.0 + 0.1 = 0.100000000096)
-        target = self.index + self.writer_speed
-        if target <= len(self.body_texs) - 1:
-            self.index = target
-
-
-class Dialogue(TextWriter):
-    def __init__(self, content, speaker):
-        self.margin = 16
-        self.back_color = Colors.GRAYS[32]
-        self.body_color = Colors.WHITE
-        self.speaker = speaker  # speaker is the character that says the thing
-        size = (display.get_width() - self.margin * 2, 320)
-        self.master_rect = pygame.Rect(
-            (self.margin, display.get_height() - size[1] - self.margin),
-            size,
-        )
-        self.speaker_tex = fonts[FontSize.SUBTITLE].render(
-            self.speaker, ANTI_ALIASING, self.body_color
-        )
-        self.speaker_rect = self.speaker_tex.get_rect(
-            topleft=(
-                self.margin * 2,
-                display.get_height() - self.master_rect.height - self.margin / 2,
-            )
-        )
-        super().__init__(  # careful not to overwrite anything here
-            content,
-            self.master_rect.topleft,
-            FontSize.BODY,
-            Colors.WHITE,
-        )
-        for rect in self.body_rects:
-            rect.topleft = (
-                rect.left + self.margin,
-                self.speaker_rect.bottom + self.margin / 2,
-            )
-
-    def update(self):
-        if self.show:
-            pygame.draw.rect(
-                display, self.back_color, self.master_rect, border_radius=BORDER_RADIUS
-            )  # render box
-            display.blit(self.speaker_tex, self.speaker_rect)  # render speaker
-            super().update()  # render body
-
-
-class Interactive:
-    DIALOGUE = 0
-    MUT_PLAYER = 1
-
-    def __init__(self, tex_path, pos: v2, do, dialogues=None):
-        self.tex = pygame.transform.scale_by(
-            pygame.image.load(tex_path).convert_alpha(), R
-        )
-        self.rect = self.tex.get_rect()
-        self.do = do
-        self.pos = pos  # world pos, not blit pos
-        self.prompt = TextWriter(
-            "Press <e> to interact",
-            (display.width / 2, display.height * 2 / 3),
-            FontSize.BODY,
-            Colors.WHITE,
-            anchor="center",
-            writer_speed=1.5,
-        )
-        self.dialogues = dialogues
-        if self.dialogues and self.do != Interactive.DIALOGUE:
-            print("Interactive object has type of DIALOGUE but no given dialogues")
-            sys.exit(1)
-
-    def update(self, player):
-        self.rect.topleft = v2_sub(cart_to_iso(*self.pos, 0), game.scroll)
-        display.blit(self.tex, self.rect)
-
-        if v2_len((player.x - self.pos[0], player.y - self.pos[1])) <= 3:
-            self.prompt.start()
-            self.prompt.update()
-
-            if pygame.key.get_just_pressed()[pygame.K_e]:
-                if self.do == Interactive.DIALOGUE:
-                    game.dialogue = self.dialogues[0]
-                    game.dialogue.start()
-        else:
-            self.prompt.kill()
-
-
 class Game:
     def __init__(self) -> None:
         self.running = True
@@ -412,18 +305,17 @@ class Game:
         self.fake_scroll = [0, 0]
         self.scroll = [0, 0]
         self.dialogue = None
+        self.focus: Any = None
 
     def set_state(self, target_state):
         self.state = target_state
-
-    def set_dialogue(self, dialogue: Dialogue):
-        self.dialogue = dialogue
 
 
 class States(Enum):
     MENU = 0
     SETTINGS = 1
     PLAY = 2
+    WORKBENCH = 3
 
 
 class FontSize:
@@ -526,10 +418,3 @@ class Node:
                 return
             self.left.split(cur_level)
             self.right.split(cur_level)
-        
-
-def pg_to_pil(pg_img):
-    return PIL.Image.frombytes("RGBA", pg_img.get_size(), pygame.image.tobytes(pg_img, "RGBA"))
-
-
-

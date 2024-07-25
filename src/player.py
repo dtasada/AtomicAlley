@@ -1,32 +1,58 @@
 from .engine import *
+from pygame.time import get_ticks as ticks
 
 
 class Player:
     def __init__(self):
         self.x = 0
         self.y = 0
-        self.blit_x = self.blit_y = 0 
+        self.pos = (self.x, self.y)
+        self.blit_x = self.blit_y = 0
+        self.blit_pos = (self.blit_x, self.blit_y)
         self.images = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: 
-            imgload(
-            "resources", "images", "player_sheet.png", columns=7, row=i, rows=5, frames=1
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
+                "resources",
+                "images",
+                "player_sheet.png",
+                columns=7,
+                row=i,
+                rows=5,
+                frames=1,
             )
             for i in range(5)
         }
-        self.images["left"] = [pygame.transform.flip(i, True, False) for i in self.images["right"]]
-        self.images["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.images["bottomleft"]]
-        self.images["topleft"] = [pygame.transform.flip(i, True, False) for i in self.images["topright"]]
-        
+        self.images["left"] = [
+            pygame.transform.flip(i, True, False) for i in self.images["right"]
+        ]
+        self.images["bottomright"] = [
+            pygame.transform.flip(i, True, False) for i in self.images["bottomleft"]
+        ]
+        self.images["topleft"] = [
+            pygame.transform.flip(i, True, False) for i in self.images["topright"]
+        ]
+
         self.run_frames = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]:
-            imgload(
-            "resources", "images", "player_sheet.png", columns=7, row=i, rows=5, start_frame=1, frames=6
-            ) 
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
+                "resources",
+                "images",
+                "player_sheet.png",
+                columns=7,
+                row=i,
+                rows=5,
+                start_frame=1,
+                frames=6,
+            )
             for i in range(5)
         }
-        self.run_frames["left"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["right"]]
-        self.run_frames["bottomright"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["bottomleft"]]
-        self.run_frames["topleft"] = [pygame.transform.flip(i, True, False) for i in self.run_frames["topright"]]
+        self.run_frames["left"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["right"]
+        ]
+        self.run_frames["bottomright"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["bottomleft"]
+        ]
+        self.run_frames["topleft"] = [
+            pygame.transform.flip(i, True, False) for i in self.run_frames["topright"]
+        ]
 
         self.current_frame = 0
         self.it = "bottom"
@@ -43,9 +69,16 @@ class Player:
         self.keys()
         self.draw()
 
+        self.blit_pos = (self.blit_x, self.blit_y)
+        self.pos = (self.x, self.y)
+
     def scroll(self):
-        game.fake_scroll[0] += (self.rect.centerx - game.fake_scroll[0] - WIDTH // 2) * 0.1
-        game.fake_scroll[1] += (self.rect.centery - game.fake_scroll[1] - HEIGHT // 2) * 0.1
+        game.fake_scroll[0] += (
+            self.rect.centerx - game.fake_scroll[0] - WIDTH // 2
+        ) * 0.1
+        game.fake_scroll[1] += (
+            self.rect.centery - game.fake_scroll[1] - HEIGHT // 2
+        ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
 
@@ -65,17 +98,33 @@ class Player:
         if keys[pygame.K_s]:
             self.animate_run = True
             bottom = True
+
+        if pygame.key.get_just_pressed()[pygame.K_SPACE]:
+            self.dash()
+
         # self.it = image type, e.g. topleft, bottom, etc.
         xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
         self.x += xvel
         self.y += yvel
         if it is not None:
             self.it = it
-    
+
     def dash(self):
         self.dashing = True
-        kwargs = {x: self.it == x for x in ("top", "topright", "right", "bottomright", "bottom", "bottomleft", "left", "topleft")}
-        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=3)
+        kwargs = {
+            x: self.it == x
+            for x in (
+                "top",
+                "topright",
+                "right",
+                "bottomright",
+                "bottom",
+                "bottomleft",
+                "left",
+                "topleft",
+            )
+        }
+        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=2)
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
         self.last_shadow = 0
@@ -120,7 +169,28 @@ class Player:
         else:
             self.current_frame = 0
             self.image = self.images[self.it][int(self.current_frame)]
+
         display.blit(self.image, self.srect)
+
+    def get_dir_vector(self) -> v2:
+        match self.it:
+            case "top":
+                return (0, 1)
+            case "topright":
+                return (1, 1)
+            case "right":
+                return (1, 0)
+            case "bottomright":
+                return (1, -1)
+            case "bottom":
+                return (0, -1)
+            case "bottomleft":
+                return (-1, -1)
+            case "left":
+                return (-1, 0)
+            case "topleft":
+                return (-1, 1)
+
 
 player = Player()
 
@@ -131,7 +201,7 @@ class PlayerShadow:
         self.rect = self.image.get_rect(center=player.rect.center)
         self.srect = self.rect.copy()
         self.alpha = 255
-    
+
     def update(self):
         self.alpha -= 20
         self.image.set_alpha(self.alpha)
