@@ -1,13 +1,14 @@
 import pygame
-import itertools
-
 import pygame.gfxdraw
+
+import random
+
+from math import sqrt
+from random import randint as rand, uniform as randf
+
+from pathlib import Path
 from enum import Enum
 from typing import Any, Tuple
-from pathlib import Path
-from math import floor, sqrt
-from random import randint as rand, uniform as randf, choice
-
 
 # Types
 v2 = Tuple[float, float]
@@ -30,7 +31,6 @@ def v2_len(v) -> float:
 
 
 # Constants
-WIDTH, HEIGHT = 1280, 720
 MMS = 1
 HMMS = MMS / 2
 QMMS = MMS / 4
@@ -41,6 +41,8 @@ HS = S / 2
 QS = S / 4
 ORIGIN = (0, 0)
 
+# UI
+GRID_SIZE = 32
 BORDER_RADIUS = 8
 ANTI_ALIASING = True
 
@@ -59,10 +61,10 @@ underlines = [
 ]
 tiles = [
     pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "empty.png")), R
+        pygame.image.load(Path("resources", "images", "tiles", "empty.png")), R
     ),
     pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile_0.png")), R
+        pygame.image.load(Path("resources", "images", "tiles", "tile_0.png")), R
     ),
 ]
 
@@ -216,7 +218,7 @@ def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame=0, frames=0):
 
 
 class Game:
-    def __init__(self) -> None:
+    def __init__(self):
         self.running = True
         self.target_fps = 60
         self.state = States.PLAY
@@ -238,6 +240,7 @@ class States(Enum):
 
 
 class FontSize:
+    SMALL = 28
     BODY = 36
     SUBTITLE = 40
     DIALOGUE = 42
@@ -254,7 +257,7 @@ class Colors:
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((WIDTH, HEIGHT))
+display = pygame.display.set_mode((1280, 720))
 game = Game()
 
 
@@ -265,14 +268,14 @@ class Node:
         self.right = None
         self.level = 0
         self.color = [rand(0, 255) for _ in range(3)]
-    
+
     def __str__(self):
         return f"Node[{self.level}][{self.x}, {self.y}, {self.w}, {self.h}]"
-    
+
     @property
     def x(self):
         return self.border[0]
-    
+
     @property
     def y(self):
         return self.border[1]
@@ -292,26 +295,32 @@ class Node:
     def get_leaves(self):
         if self.left is None and self.right is None:
             yield self
-        if self.left is not None: 
+        if self.left is not None:
             for leaf in self.left.get_leaves():
                 yield leaf
         if self.right is not None:
             for leaf in self.right.get_leaves():
                 yield leaf
-    
+
     def draw_paths(self):
         if self.left is None or self.right is None:
             return
         pygame.draw.line(display, Colors.BLACK, self.left.center, self.right.center, 4)
         self.left.draw_paths()
         self.right.draw_paths()
-    
+
     def split(self, level):
         self.level = level + 1
         if self.level == 5:
             p = 0.3
-            topleft = (rand(self.x + 1, self.x + int(self.w * p)), rand(self.y + 1, self.y + int(self.h * p)))
-            bottomright = (rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w), rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h))
+            topleft = (
+                rand(self.x + 1, self.x + int(self.w * p)),
+                rand(self.y + 1, self.y + int(self.h * p)),
+            )
+            bottomright = (
+                rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w),
+                rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h),
+            )
             w = bottomright[0] - topleft[0]
             h = bottomright[1] - topleft[1]
             self.room = [*topleft, w, h]
