@@ -158,8 +158,6 @@ def main():
         for interactive in interactives:
             interactive.update(player, interactives)
 
-        player.update()
-
         match game.state:
             case States.MENU:
                 for button in buttons[States.MENU]:

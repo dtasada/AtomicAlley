@@ -176,7 +176,7 @@ class Player:
         self.srect.y -= game.scroll[1]
         #
         if self.animate_run:
-            if self.current_frame > len(self.run_frames[self.it]) - 1:
+            if self.current_frame >= len(self.run_frames[self.it]):
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
             self.current_frame += 0.15
