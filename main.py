@@ -28,7 +28,7 @@ class World:
         right_wall = [(x, 0, z) for x in range(10) for z in range(10)]
         map_ = keys + left_wall + right_wall
         self.data = dict.fromkeys(map_, None)
-        self.data = {k: 0 for k in self.data}
+        self.data = {k: 1 for k in self.data}
         self.data[(2, 2, 0)] = 1
 
 

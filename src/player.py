@@ -84,7 +84,7 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-        m = 0.05
+        m = 0.1
         left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
