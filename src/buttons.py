@@ -6,7 +6,7 @@ import random
 
 
 class Button:
-    def __init__(self, pos: v2, size: int, text) -> None:
+    def __init__(self, pos: v2, size: int, text):
         self.text = fonts[size].render(text, True, Colors.WHITE)
         self.text_rect = self.text.get_rect(topleft=pos)
         self.underline = pygame.transform.scale(
@@ -26,7 +26,7 @@ class Button:
 
 
 class ButtonLabel(Button):
-    def __init__(self, pos: v2, font_size: int, text, do: LambdaType) -> None:
+    def __init__(self, pos: v2, font_size: int, text, do: LambdaType):
         super().__init__(pos, font_size, text)
         self.do = do
 
@@ -75,7 +75,9 @@ class ButtonToggle(Button):
             border_radius=BORDER_RADIUS,
         )
 
-        super().update()
+        display.blit(self.text, self.text_rect)
+        if self.combi_rect.collidepoint(pygame.mouse.get_pos()):
+            display.blit(self.underline, self.underline_rect)
 
         if self.enabled:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)

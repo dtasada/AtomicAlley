@@ -4,21 +4,18 @@ import pygame
 import sys
 
 from pathlib import Path
-from typing import Dict
 
+from src.artifacts import *
 from src.buttons import *
 from src.engine import *
 from src.objects import *
 from src.player import *
+from src.workbench import *
 from src.writers import *
 
 
 clock = pygame.time.Clock()
-tiles = imgload("resources", "images", "tile_sheet.png", columns=2, frames=2)
-tiles.extend([
-    imgload("resources", "images", "tile_0.png"),
-    imgload("resources", "images", "tile_1.png"),
-])
+tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=3, frames=3)
 
 # 0 = black
 # 1 = white
@@ -26,8 +23,6 @@ tiles.extend([
 # 3 = rgb
 
 # workbench_ui = WorkBenchUI()
-surfs = [gen_char() for _ in range(20)]
-
 head = Node([0, 0, 200, 200])
 head.split(-1)
 head.draw_paths()
@@ -36,7 +31,7 @@ poss = []
 for leaf in head.get_leaves():
     for xo in range(leaf.room[2]):
         for yo in range(leaf.room[3]):
-            poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, 2))
+            poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, 0))
             # if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
             #     poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 1, 3))
 world.data = {data[:3]: data[3] for data in poss}
@@ -54,36 +49,45 @@ for start, end in corridors:
 
 
 def main():
-    buttons: Dict[str, Button] = {
-        "b": ButtonToggle((100, 100), 24, "toggle", 10),
-        "title": ButtonLabel(
-            (100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)
-        ),
+    buttons = {
+        States.MENU: [
+            ButtonToggle((100, 100), 40, "toggle", 10),
+            ButtonLabel((100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)),
+        ],
+        States.MAIN_MENU: [
+            ButtonLabel(
+                (display.width / 2, display.height / 2),
+                100,
+                "PLAY",
+                lambda: game.set_state(States.PLAY),
+            ),
+        ],
     }
 
     interactives = [
         Interactive(
             "Chest",
-            Path("resources", "images", "chest.png"),
+            Path("resources", "images", "tiles", "chest.png"),
             (1, 1),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
         ),
         Interactive(
             "Workbench",
-            Path("resources", "images", "workbench.png"),
+            Path("resources", "images", "tiles", "workbench.png"),
             (4, 2),
             Interactive.MUT_STATE,
             target_state=States.WORKBENCH,
+            other_lambda=lambda: workbench_ui.gen_grid(),
         ),
+        Artifacts.TONIC_OF_LIFE().to_world((6, 6)),
     ]
 
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
-            if game.state == States.MENU:
-                for button in buttons.values():
-                    button.process_event(event)
+            for state, array in buttons.items():
+                [button.process_event(event) for button in array if state == game.state]
 
             match event.type:
                 case pygame.QUIT:
@@ -92,10 +96,11 @@ def main():
 
                 case pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        if game.state == States.PLAY:
-                            game.set_state(States.MENU)
-                        elif game.state == States.MENU:
-                            game.set_state(States.PLAY)
+                        match game.state:
+                            case States.PLAY:
+                                game.set_state(States.MENU)
+                            case States.MENU | States.WORKBENCH:
+                                game.set_state(States.PLAY)
 
         display.fill(Colors.GRAYS[30])
 
@@ -118,9 +123,6 @@ def main():
         for shadow in all_shadows:
             shadow.update()
 
-        for button in buttons.values():
-            button.update()
-
         for leaf in head.get_leaves():
             pygame.draw.rect(display, leaf.color, leaf.border)
             pygame.draw.rect(display, Colors.BLACK, leaf.room)
@@ -128,29 +130,44 @@ def main():
         player.update()
 
 
-        write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, WIDTH - 9, 5)
+        write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, display.width - 9, 5)
         
         write(display, "center", f"{player.x:.0f},{player.y:.0f}", fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 30)
         for interactive in interactives:
             if player.rect.bottom < interactive.rect.bottom:
                 interactive.update(player, interactives)
 
-        player.update()
 
-        for interactive in interactives:
-            if player.rect.bottom > interactive.rect.bottom:
-                interactive.update(player, interactives)
+        # for interactive in interactives:
+        #     if player.rect.bottom > interactive.rect.bottom:
+        #         interactive.update(player, interactives)
 
-        if game.state == States.MENU:
-            for button in buttons.values():
-                button.update()
+        # if game.state == States.MENU:
+        #     for button in buttons.values():
+        #         button.update()
 
         write(
-           display,  "topright", int(clock.get_fps()), fonts[25], Colors.GRAYS[200], WIDTH - 9, 5
+            display,
+            "topright",
+            int(clock.get_fps()),
+            fonts[25],
+            Colors.WHITE,
+            display.width - 9,
+            5,
         )
-        if game.state == States.MENU:
-            for button in buttons.values():
-                button.update()
+        # for interactive in interactives:
+        #     interactive.update(player, interactives)
+
+        # for state, array in buttons.items():
+        #     for button in array:
+        #         if state == game.state:
+        #             button.update()
+
+        match game.state:
+            case States.MENU:
+                pass
+            case States.WORKBENCH:
+                workbench_ui.update()
 
         if game.dialogue:
             game.dialogue.update()

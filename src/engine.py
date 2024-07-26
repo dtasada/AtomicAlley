@@ -1,19 +1,13 @@
 import pygame
-import itertools
-
 import pygame.gfxdraw
+
+from math import sqrt, floor
+from random import randint as rand
+from pathlib import Path
 from enum import Enum
 from typing import Any, Tuple
 from pathlib import Path
-from math import floor, sqrt
 from random import randint as rand, uniform as randf, choice
-from math import floor, sqrt
-from random import randint as rand
-from math import sqrt
-from random import randint as rand
-from math import sqrt
-from random import randint as rand
-from pprint import pprint
 
 
 # Types
@@ -37,7 +31,6 @@ def v2_len(v) -> float:
 
 
 # Constants
-WIDTH, HEIGHT = 1280, 720
 MMS = 1
 HMMS = MMS / 2
 QMMS = MMS / 4
@@ -48,6 +41,7 @@ HS = S / 2
 QS = S / 4
 ORIGIN = (0, 0)
 
+# UI
 BORDER_RADIUS = 8
 ANTI_ALIASING = True
 
@@ -64,82 +58,6 @@ underlines = [
     )
     for i in range(6)
 ]
-
-
-class Button:
-    def __init__(self, pos: v2, size: int, text) -> None:
-        self.text = fonts[size].render(text, True, Colors.WHITE)
-        self.text_rect = self.text.get_rect(topleft=pos)
-        self.underline = pygame.transform.scale(
-            choice(underlines),
-            (self.text_rect.width, self.text_rect.width * 0.2),
-        )
-        self.underline_rect = self.underline.get_rect(
-            topleft=(self.text_rect.left, self.text_rect.bottom)
-        )
-
-    def update(self):
-        display.blit(self.text, self.text_rect)
-        if self.text_rect.collidepoint(pygame.mouse.get_pos()):
-            display.blit(self.underline, self.underline_rect)
-
-    def process_event(self, event) -> None: ...
-
-
-class ButtonLabel(Button):
-    def __init__(self, pos: v2, font_size: int, text, do) -> None:
-        super().__init__(pos, font_size, text)
-        self.do = do
-
-    def process_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.text_rect.collidepoint(pygame.mouse.get_pos()):
-                self.do()
-
-
-class ButtonToggle(Button):
-    def __init__(self, pos: v2, size: int, text, text_offset: int, enabled=False):
-        super().__init__(pos, size, text)
-
-        self.button_surf = pygame.surface.Surface((size, size))
-        self.button_surf.fill(Colors.WHITE)
-        self.button_rect = pygame.Rect(pos, (size, size))
-
-        self.underline_rect.left = self.button_rect.right + 8
-
-        self.text_rect = pygame.Rect(
-            self.button_rect.right + text_offset,
-            self.button_rect.top - 4,  # - 4 is to compensate font vertical padding
-            *self.text.get_size(),
-        )
-
-        self.enabled = enabled
-
-        self.combi_rect = pygame.Rect(
-            self.button_rect.left,
-            self.button_rect.top,
-            self.button_rect.width + text_offset + self.text_rect.width,
-            self.button_rect.height,
-        )
-
-    def process_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.combi_rect.collidepoint(pygame.mouse.get_pos()):
-                self.enabled = not self.enabled
-
-    def update(self):
-        pygame.draw.rect(
-            display,
-            Colors.WHITE,
-            self.button_rect,
-            width=1,
-            border_radius=BORDER_RADIUS,
-        )
-
-        super().update()
-
-        if self.enabled:
-            pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
 
 
 def darken(img, m):
@@ -291,7 +209,7 @@ def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame=0, frames=0):
 
 
 class Game:
-    def __init__(self) -> None:
+    def __init__(self):
         self.running = True
         self.target_fps = 60
         self.state = States.PLAY
@@ -309,9 +227,11 @@ class States(Enum):
     SETTINGS = 1
     PLAY = 2
     WORKBENCH = 3
+    MAIN_MENU = 4
 
 
 class FontSize:
+    SMALL = 28
     BODY = 36
     SUBTITLE = 40
     DIALOGUE = 42
@@ -328,7 +248,7 @@ class Colors:
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((WIDTH, HEIGHT), vsync=1)
+display = pygame.display.set_mode((1280, 720))
 game = Game()
 
 
@@ -354,14 +274,14 @@ class Node:
         self.right = None
         self.level = 0
         self.color = [rand(0, 255) for _ in range(3)]
-    
+
     def __str__(self):
         return f"Node[{self.level}][{self.x}, {self.y}, {self.w}, {self.h}]"
-    
+
     @property
     def x(self):
         return self.border[0]
-    
+
     @property
     def y(self):
         return self.border[1]
@@ -381,13 +301,13 @@ class Node:
     def get_leaves(self):
         if self.left is None and self.right is None:
             yield self
-        if self.left is not None: 
+        if self.left is not None:
             for leaf in self.left.get_leaves():
                 yield leaf
         if self.right is not None:
             for leaf in self.right.get_leaves():
                 yield leaf
-    
+
     def draw_paths(self):
         if self.left is None or self.right is None:
             return
@@ -395,13 +315,19 @@ class Node:
         corridors.append([self.left.center, self.right.center])
         self.left.draw_paths()
         self.right.draw_paths()
-    
+
     def split(self, level):
         self.level = level + 1
         if self.level == max_level:
             p = 0.3
-            topleft = (rand(self.x + 1, self.x + int(self.w * p)), rand(self.y + 1, self.y + int(self.h * p)))
-            bottomright = (rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w), rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h))
+            topleft = (
+                rand(self.x + 1, self.x + int(self.w * p)),
+                rand(self.y + 1, self.y + int(self.h * p)),
+            )
+            bottomright = (
+                rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w),
+                rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h),
+            )
             w = bottomright[0] - topleft[0]
             h = bottomright[1] - topleft[1]
             self.room = [*topleft, w, h]

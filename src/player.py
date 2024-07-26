@@ -2,17 +2,30 @@ from .engine import *
 from pygame.time import get_ticks as ticks
 
 
+class Effects(Enum):
+    HEALTH = 0
+    SPEED = 1
+    INTELLIGENCE = 2
+
+
+class Effect:
+    def __init__(self, type_: Effects, magnitude):
+        self.type = type_
+        self.magnitude = magnitude
+
+
 class Player:
     def __init__(self):
         self.x = 0
         self.y = 0
-        self.pos = (self.x, self.y)
+        self.wpos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
-        self.blit_pos = (self.blit_x, self.blit_y)
+        self.dpos = (self.blit_x, self.blit_y)
         self.images = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
                 "resources",
                 "images",
+                "player",
                 "player_sheet.png",
                 columns=7,
                 row=i,
@@ -35,6 +48,7 @@ class Player:
             ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
                 "resources",
                 "images",
+                "player",
                 "player_sheet.png",
                 columns=7,
                 row=i,
@@ -66,18 +80,19 @@ class Player:
         self.dashing = False
 
     def update(self):
-        self.keys()
+        if game.state == States.PLAY and not game.dialogue:
+            self.keys()
         self.draw()
 
-        self.blit_pos = (self.blit_x, self.blit_y)
-        self.pos = (self.x, self.y)
+        self.dpos = (self.blit_x, self.blit_y)
+        self.wpos = (self.x, self.y)
 
     def scroll(self):
         game.fake_scroll[0] += (
-            self.rect.centerx - game.fake_scroll[0] - WIDTH // 2
+            self.rect.centerx - game.fake_scroll[0] - display.width // 2
         ) * 0.1
         game.fake_scroll[1] += (
-            self.rect.centery - game.fake_scroll[1] - HEIGHT // 2
+            self.rect.centery - game.fake_scroll[1] - display.height // 2
         ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
@@ -164,10 +179,10 @@ class Player:
         self.srect.y -= game.scroll[1]
         #
         if self.animate_run:
-            if self.current_frame > len(self.run_frames[self.it]) - 1:
+            if self.current_frame >= len(self.run_frames[self.it]):
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
-            self.current_frame += 0.08
+            self.current_frame += 0.14
             self.animate_run = False
         else:
             self.current_frame = 0
