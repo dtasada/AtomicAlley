@@ -84,11 +84,7 @@ class Player:
 
     def keys(self):
         keys = pygame.key.get_pressed()
-<<<<<<< HEAD
-        m = 0.1
-=======
         m = 0.08
->>>>>>> f39078f7e2cc3101a61e7c117047c5b7fad2f09b
         left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
@@ -112,6 +108,9 @@ class Player:
         self.y += yvel
         if it is not None:
             self.it = it
+    
+    def get_collisions(self):
+        return
 
     def dash(self):
         self.dashing = True
@@ -168,7 +167,7 @@ class Player:
             if self.current_frame > len(self.run_frames[self.it]) - 1:
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
-            self.current_frame += 0.15
+            self.current_frame += 0.08
             self.animate_run = False
         else:
             self.current_frame = 0

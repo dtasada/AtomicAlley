@@ -13,6 +13,7 @@ from math import sqrt
 from random import randint as rand
 from math import sqrt
 from random import randint as rand
+from pprint import pprint
 
 
 # Types
@@ -62,14 +63,6 @@ underlines = [
         0, i * 83 + 14, 500, 83 - 14
     )
     for i in range(6)
-]
-tiles = [
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "empty.png")), R
-    ),
-    pygame.transform.scale_by(
-        pygame.image.load(Path("resources", "images", "tile.png")), R
-    ),
 ]
 
 
@@ -335,8 +328,23 @@ class Colors:
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((WIDTH, HEIGHT))
+display = pygame.display.set_mode((WIDTH, HEIGHT), vsync=1)
 game = Game()
+
+
+class World:
+    def __init__(self):
+        self.data = {}
+        # keys = [x + (0,) for x in itertools.product(range(20), range(20))]
+        # left_wall = [(0, y, z) for y in range(20) for z in range(10)]
+        # right_wall = [(x, 0, z) for x in range(20) for z in range(10)]
+        # map_ = keys + left_wall + right_wall
+        map_ = []
+        self.data[(2, 2, 0)] = 1
+
+
+world = World()
+max_level = 5
 
 
 class Node:
@@ -368,7 +376,7 @@ class Node:
 
     @property
     def center(self):
-        return [self.x + self.w / 2, self.y + self.h / 2]
+        return [int(self.x + self.w / 2), int(self.y + self.h / 2)]
 
     def get_leaves(self):
         if self.left is None and self.right is None:
@@ -384,12 +392,13 @@ class Node:
         if self.left is None or self.right is None:
             return
         pygame.draw.line(display, Colors.BLACK, self.left.center, self.right.center, 4)
+        corridors.append([self.left.center, self.right.center])
         self.left.draw_paths()
         self.right.draw_paths()
     
     def split(self, level):
         self.level = level + 1
-        if self.level == 5:
+        if self.level == max_level:
             p = 0.3
             topleft = (rand(self.x + 1, self.x + int(self.w * p)), rand(self.y + 1, self.y + int(self.h * p)))
             bottomright = (rand(self.x + 1 + int(self.w * (1 - p)), self.x + self.w), rand(self.y + 1 + int(self.h * (1 - p)), self.y + self.h))
@@ -418,3 +427,6 @@ class Node:
                 return
             self.left.split(cur_level)
             self.right.split(cur_level)
+
+
+corridors = []
