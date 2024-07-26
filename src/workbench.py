@@ -12,10 +12,39 @@ class ItemTypes(Enum):
 
 
 class WorkBenchUI:
-    outer_margin = 128
+    outer_margin = (202, 128)
     inner_margin = 32
-    cell_size = 64
     grid_size = (4, 4)
+
+    master_rect = pygame.Rect(
+        outer_margin[0],
+        outer_margin[1],
+        display.width - outer_margin[0] * 2,
+        display.height - outer_margin[1] * 2,
+    )
+
+    cell_size = (master_rect.height - inner_margin * 2) / grid_size[1]
+
+    grid_start = (
+        master_rect.left + inner_margin,
+        master_rect.top + inner_margin,
+    )
+    grid_end = (
+        grid_start[0] + grid_size[0] * cell_size,
+        grid_start[1] + grid_size[1] * cell_size,
+    )
+
+    # Lines at right and bottom of grid
+    closing_lines = (
+        (
+            (grid_start[0], grid_end[1]),
+            (grid_end[0], grid_end[1]),
+        ),
+        (
+            (grid_end[0], grid_start[1]),
+            (grid_end[0], grid_end[1]),
+        ),
+    )
 
     class GridItem:
         def __init__(self, wpos, origin: Artifact | Atom):
@@ -36,39 +65,11 @@ class WorkBenchUI:
             display.blit(self.tex, self.rect)
 
     def __init__(self):
-        self.master_rect = pygame.Rect(
-            self.outer_margin,
-            self.outer_margin,
-            display.width - self.outer_margin * 2,
-            display.height - self.outer_margin * 2,
-        )
-
         # WorkBenchUI.items is a grid of 4x4, each of which contains None, or a selection of atoms or Artifacts
         self.items: List[List[WorkBenchUI.GridItem | None]] = [
             [None] * self.grid_size[1]
         ] * self.grid_size[0]
         self.gen_grid()
-
-        self.grid_start = (
-            self.master_rect.left + self.inner_margin,
-            self.master_rect.top + self.inner_margin,
-        )
-        self.grid_end = (
-            self.grid_start[0] + self.grid_size[0] * self.cell_size,
-            self.grid_start[1] + self.grid_size[1] * self.cell_size,
-        )
-
-        # Lines at right and bottom of grid
-        self.closing_lines = (
-            (
-                (self.grid_start[0], self.grid_end[1]),
-                (self.grid_end[0], self.grid_end[1]),
-            ),
-            (
-                (self.grid_end[0], self.grid_start[1]),
-                (self.grid_end[0], self.grid_end[1]),
-            ),
-        )
 
     def gen_grid(self) -> None:
         "Generates the workbench inventory (in-place)"

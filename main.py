@@ -145,13 +145,9 @@ def main():
             interactive.update(player, interactives)
 
         for state, array in buttons.items():
-            [button.update() for button in array if state == game.state]
-
-        # or
-        # for state, array in buttons.items():
-        #     for button in array:
-        #         if state == game.state:
-        #             button.update()
+            for button in array:
+                if state == game.state:
+                    button.update()
 
         match game.state:
             case States.MENU:
