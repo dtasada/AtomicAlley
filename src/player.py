@@ -123,6 +123,9 @@ class Player:
         self.y += yvel
         if it is not None:
             self.it = it
+    
+    def get_collisions(self):
+        return
 
     def dash(self):
         self.dashing = True
@@ -179,7 +182,7 @@ class Player:
             if self.current_frame >= len(self.run_frames[self.it]):
                 self.current_frame = 0
             self.image = self.run_frames[self.it][int(self.current_frame)]
-            self.current_frame += 0.15
+            self.current_frame += 0.14
             self.animate_run = False
         else:
             self.current_frame = 0

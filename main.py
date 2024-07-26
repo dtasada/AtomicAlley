@@ -15,40 +15,37 @@ from src.writers import *
 
 
 clock = pygame.time.Clock()
+tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=3, frames=3)
 
-tiles = [
-    imgload("resources", "images", "tiles", "tile_0.png"),
-    imgload("resources", "images", "tiles", "tile_1.png"),
-]
+# 0 = black
+# 1 = white
+# 2 = gray
+# 3 = rgb
 
-
-class World:
-    def __init__(self):
-        # keys = [x + (0,) for x in itertools.product(range(20), range(20))]
-        # left_wall = [(0, y, z) for y in range(20) for z in range(10)]
-        # right_wall = [(x, 0, z) for x in range(20) for z in range(10)]
-        # map_ = keys + left_wall + right_wall
-        map_ = []
-        self.data = dict.fromkeys(map_, None)
-        self.data = {k: 0 for k in self.data}
-        self.light_data = {k: randf(0.6, 1) for k, v in self.data.items()}
-        self.data[(2, 2, 0)] = 1
-
-
-world = World()
-surfs = [gen_char() for _ in range(20)]
-
+# workbench_ui = WorkBenchUI()
 head = Node([0, 0, 200, 200])
 head.split(-1)
+head.draw_paths()
 
 poss = []
 for leaf in head.get_leaves():
     for xo in range(leaf.room[2]):
         for yo in range(leaf.room[3]):
             poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, 0))
-            if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
-                poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 1, 1))
+            # if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
+            #     poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 1, 3))
 world.data = {data[:3]: data[3] for data in poss}
+for start, end in corridors:
+    if start[0] == end[0]:
+        y = start[1]
+        while y != end[1]:
+            y += sign(end[1] - start[1])
+            world.data[(start[0], y, 0)] = 2
+    elif start[1] == end[1]:
+        x = start[0]
+        while x != end[0]:
+            x += sign(end[0] - start[0])
+            world.data[(x, start[1], 0)] = 2
 
 
 def main():
@@ -105,7 +102,7 @@ def main():
                             case States.MENU | States.WORKBENCH:
                                 game.set_state(States.PLAY)
 
-        display.fill(Colors.GRAYS[50])
+        display.fill(Colors.GRAYS[30])
 
         player.scroll()
 
@@ -141,8 +138,37 @@ def main():
             display.width - 9,
             5,
         )
+
+        write(
+            display,
+            "center",
+            f"{player.x:.0f},{player.y:.0f}",
+            fonts[30],
+            Colors.WHITE,
+            player.srect.centerx,
+            player.srect.top - 30,
+        )
+        for interactive in interactives:
+            if player.rect.bottom < interactive.rect.bottom:
+                interactive.update(player, interactives)
+
+        write(
+            display,
+            "topright",
+            int(clock.get_fps()),
+            fonts[25],
+            Colors.WHITE,
+            display.width - 9,
+            5,
+        )
+
         for interactive in interactives:
             interactive.update(player, interactives)
+
+        for state, array in buttons.items():
+            for button in array:
+                if state == game.state:
+                    button.update()
 
         for state, array in buttons.items():
             for button in array:
