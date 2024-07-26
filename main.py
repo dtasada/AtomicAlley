@@ -10,7 +10,7 @@ from src.buttons import *
 from src.engine import *
 from src.objects import *
 from src.player import *
-from src.uis import *
+from src.workbench import *
 from src.writers import *
 
 
@@ -54,29 +54,18 @@ world.data = {data[:3]: data[3] for data in poss}
 def main():
     buttons = {
         States.MENU: [
-            ButtonToggle(
-                (100, 100), 
-                40,
-                "toggle",
-                10
-            ),
-            ButtonLabel(
-                (100, 200),
-                20, 
-                "BOTH", 
-                lambda: game.set_state(States.PLAY)
-            ),
+            ButtonToggle((100, 100), 40, "toggle", 10),
+            ButtonLabel((100, 200), 20, "BOTH", lambda: game.set_state(States.PLAY)),
         ],
         States.MAIN_MENU: [
             ButtonLabel(
-                (display.width/2, display.height/2), 
-                100, 
-                "PLAY", 
-                lambda: game.set_state(States.PLAY)
+                (display.width / 2, display.height / 2),
+                100,
+                "PLAY",
+                lambda: game.set_state(States.PLAY),
             ),
-        ]
+        ],
     }
-
 
     interactives = [
         Interactive(
@@ -100,9 +89,8 @@ def main():
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
-            if game.state == States.MENU:
-                for button in buttons[States.MENU]:
-                    button.process_event(event)
+            for state, array in buttons.items():
+                [button.process_event(event) for button in array if state == game.state]
 
             match event.type:
                 case pygame.QUIT:
@@ -114,9 +102,7 @@ def main():
                         match game.state:
                             case States.PLAY:
                                 game.set_state(States.MENU)
-                            case States.MENU:
-                                game.set_state(States.PLAY)
-                            case States.WORKBENCH:
+                            case States.MENU | States.WORKBENCH:
                                 game.set_state(States.PLAY)
 
         display.fill(Colors.GRAYS[50])
@@ -158,10 +144,18 @@ def main():
         for interactive in interactives:
             interactive.update(player, interactives)
 
+        for state, array in buttons.items():
+            [button.update() for button in array if state == game.state]
+
+        # or
+        # for state, array in buttons.items():
+        #     for button in array:
+        #         if state == game.state:
+        #             button.update()
+
         match game.state:
             case States.MENU:
-                for button in buttons[States.MENU]:
-                    button.update()
+                pass
             case States.WORKBENCH:
                 workbench_ui.update()
 

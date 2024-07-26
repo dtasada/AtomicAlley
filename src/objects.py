@@ -4,10 +4,13 @@ from .writers import *
 from .artifacts import *
 from .player import *
 
+from typing import List
+
 import sys
 
 
 class Interactive:
+    "Interactive item that is found in-game, like a workbench, or floor loot"
     DIALOGUE = 0
     MUT_STATE = 1
     MUT_PLAYER = 2
@@ -18,10 +21,10 @@ class Interactive:
         tex_path,
         world_pos: v2,
         do,
-        player_effect: Effect = None,
-        dialogues=None,
-        target_state=None,
-        other_lambda: LambdaType = None,
+        player_effect: Effect | None = None,
+        dialogues: List[Dialogue] | None = None,
+        target_state: States | None = None,
+        other_lambda: LambdaType | None = None,
     ):
         self.focused = False
         self.description = description

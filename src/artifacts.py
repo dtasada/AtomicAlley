@@ -10,6 +10,8 @@ from pathlib import Path
 
 
 class ArtifactInteractive(Interactive):
+    "Artifact class for floor drops"
+
     def __init__(self, name, tex_path, properties: List[Effect], world_pos: v2):
         super().__init__(
             name,
@@ -31,12 +33,15 @@ class ArtifactInteractive(Interactive):
 
 
 class ArtifactType(Enum):
+    "All possible types of artifacts"
     TONIC = 0
     KERNEL = 0
     DOCUMENT = 0
 
 
 class Artifact:
+    "Base Artifact structure"
+
     def __init__(self, type_: ArtifactType, name, tex_path, properties: List[Effect]):
         self.type = type_
         self.name = name
@@ -48,6 +53,8 @@ class Artifact:
 
 
 class Artifacts:
+    "All different artifact implementations"
+
     @staticmethod
     def TONIC_OF_LIFE():
         return deepcopy(

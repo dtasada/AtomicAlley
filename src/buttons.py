@@ -75,8 +75,9 @@ class ButtonToggle(Button):
             border_radius=BORDER_RADIUS,
         )
 
-        super().update()
+        display.blit(self.text, self.text_rect)
+        if self.combi_rect.collidepoint(pygame.mouse.get_pos()):
+            display.blit(self.underline, self.underline_rect)
 
         if self.enabled:
             pygame.draw.rect(display, Colors.WHITE, self.button_rect, border_radius=8)
-

@@ -1,10 +1,8 @@
 import pygame
 import pygame.gfxdraw
 
-import random
-
 from math import sqrt
-from random import randint as rand, uniform as randf
+from random import randint as rand
 
 from pathlib import Path
 from enum import Enum
@@ -42,7 +40,6 @@ QS = S / 4
 ORIGIN = (0, 0)
 
 # UI
-GRID_SIZE = 32
 BORDER_RADIUS = 8
 ANTI_ALIASING = True
 

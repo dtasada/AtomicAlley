@@ -10,19 +10,13 @@ import inspect
 
 
 class Craftable(Enum):
-    "Whether a give atom can be used to craft an artifact"
+    "Whether a given atom can be used to craft an artifact"
     KERNEL_OF_IDEOLOGY = 0
 
 
-class Atom:
-    def __init__(self, name, tex_path, properties: List[Craftable]):
-        self.name = name
-        self.tex_path = tex_path
-        self.name = properties
-        self.properties = properties
-
-
 class Atoms:
+    "All different atom implementations"
+
     @staticmethod
     def ARGON():
         return deepcopy(
@@ -33,6 +27,7 @@ class Atoms:
             )
         )
 
+    """
     @staticmethod
     def ARSENIC(): ...
     @staticmethod
@@ -55,3 +50,13 @@ class Atoms:
     def TUNGSTEN(): ...
     @staticmethod
     def VANADIUM(): ...
+    """
+
+
+class Atom:
+    "Base Atom structure"
+
+    def __init__(self, name, tex_path, properties: List[Craftable]):
+        self.name = name
+        self.tex_path = tex_path
+        self.properties = properties
