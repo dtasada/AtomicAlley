@@ -1,6 +1,6 @@
 import pygame
 import pygame.gfxdraw
-
+from pygame.time import get_ticks as ticks
 from math import sqrt, floor
 from random import randint as rand
 from pathlib import Path
@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any, Tuple
 from pathlib import Path
 from random import randint as rand, uniform as randf, choice
-
+from pprint import pprint
 
 # Types
 v2 = Tuple[float, float]
@@ -30,6 +30,10 @@ def v2_len(v) -> float:
     return sqrt(v[0] ** 2 + v[1] ** 2)
 
 
+def v2_center(v) -> v2:
+    return [s / 2 for s in v]
+
+
 # Constants
 MMS = 1
 HMMS = MMS / 2
@@ -49,6 +53,11 @@ all_shadows = []
 
 # Init
 pygame.init()
+
+#sfx
+buzzing_channel = pygame.mixer.find_channel()
+light_buzz = pygame.mixer.Sound(Path("resources", "sfx", "buzz.wav"))
+
 fonts = [
     pygame.font.Font(Path("resources", "fonts", "Chicago.ttf"), i) for i in range(101)
 ]
@@ -212,14 +221,32 @@ class Game:
     def __init__(self):
         self.running = True
         self.target_fps = 60
-        self.state = States.PLAY
+        self.state = States.MAIN_MENU
         self.fake_scroll = [0, 0]
         self.scroll = [0, 0]
         self.dialogue = None
         self.focus: Any = None
 
     def set_state(self, target_state):
+        global buzzing_channel
+
+        if target_state == States.MAIN_MENU:
+            buzzing_channel.set_volume(0.7)
+            buzzing_channel.play(light_buzz, -1)
+
+            pygame.mixer.music.unload()
+            pygame.mixer.music.load(Music.MAIN_MENU)
+            pygame.mixer_music.play(-1)
+
+        if self.state == States.MAIN_MENU and target_state == States.PLAY:
+            buzzing_channel.stop()
+            pygame.mixer.music.unload()
+
         self.state = target_state
+
+
+class Music():
+    MAIN_MENU = Path("resources", "sfx", "MainMenuMusic.mp3")
 
 
 class States(Enum):
@@ -244,12 +271,16 @@ class Colors:
     GRAYS = [(x, x, x) for x in range(255)]
     WHITE = (255, 255, 255)
     RED = (255, 0, 0)
+    GREEN = (0, 200, 0)
+    RED = (200, 0, 0)
 
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((1280, 720))
+pygame.display.set_caption("Atomic Alley")
+display = pygame.display.set_mode((1280, 720), vsync=1)
 game = Game()
+all_particles = []
 
 
 class World:
@@ -267,6 +298,16 @@ class World:
         # map_ = keys + left_wall + right_wall
         map_ = []
         self.data[(2, 2, 0)] = 1
+    
+    def try_modifying(self, data):
+        targ_pos, value = data
+        for data in self.data:
+            # data = ((x, y, z), value)
+            if data[0] == targ_pos:
+                return False
+        else:
+            self.data.append((targ_pos, value))
+            return True
 
 
 world = World()
@@ -359,6 +400,26 @@ class Node:
                 return
             self.left.split(cur_level)
             self.right.split(cur_level)
+
+
+class Particle:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.r = rand(3, 6)
+        self.yvel = randf(-4, -5)
+        self.xvel = randf(-1.3, 1.3)
+        self.color = [rand(30, 50)] * 3
+        self.last_spawn = ticks()
+    
+    def update(self):
+        self.x += self.xvel
+        self.yvel += 0.5
+        self.y += self.yvel
+        pygame.gfxdraw.filled_circle(display, int(self.x), int(self.y), self.r, self.color)
+        # pygame.gfxdraw.aacircle(display, int(self.x), int(self.y), self.r, Colors.GRAYS[220])
+        if ticks() - self.last_spawn >= 270:
+            all_particles.remove(self)
 
 
 corridors = []
