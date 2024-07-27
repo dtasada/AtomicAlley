@@ -18,7 +18,7 @@ clock = pygame.time.Clock()
 tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=3, frames=3)
 
 # 0 = black
-# 1 = white
+# 1 = whites
 # 2 = gray
 # 3 = rgb
 
@@ -83,6 +83,12 @@ def main():
         Artifacts.TONIC_OF_LIFE().to_world((6, 6)),
     ]
 
+    title1 = imgload("resources", "images", "title1.png", scale=5)
+    title2 = imgload("resources", "images", "title2.png", scale=5)
+    title_flicker = 0 
+    buzzing = True
+
+    game.set_state(States.MAIN_MENU)
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
@@ -95,6 +101,10 @@ def main():
                     sys.exit()
 
                 case pygame.KEYDOWN:
+                    if game.state == States.MAIN_MENU:
+                        
+                        game.set_state(States.PLAY)
+
                     if event.key == pygame.K_ESCAPE:
                         match game.state:
                             case States.PLAY:
@@ -102,66 +112,84 @@ def main():
                             case States.MENU | States.WORKBENCH:
                                 game.set_state(States.PLAY)
 
-        display.fill(Colors.GRAYS[30])
+        if game.state == States.MAIN_MENU:
+            if random.randint(0, 100) > 94:
+                title = title2
+                if buzzing:
+                    buzzing = False
+                    buzzing_channel.pause()
+            else:
+                title = title1
+                if not buzzing:
+                    buzzing_channel.unpause()
 
-        player.scroll()
+            display.blit(title, (0, 0))
 
-        for pos, tile in world.data.items():
-            x, y, z = pos
-            # minimap
-            mm_x = x * MMS
-            mm_y = y * MMS
-            # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
-            # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
-            if tile or True:
-                blit_x, blit_y = cart_to_iso(x, y, z)
-                # map
-                blit_x -= game.scroll[0]
-                blit_y -= game.scroll[1]
-                display.blit(tiles[tile], (blit_x, blit_y))
+            if int(title_flicker) % 2 == 0:
+                write(display, "center", "press any key to continue", fonts[25], Colors.WHITE, display.width/2, 6*display.height/7)
+            title_flicker += 0.04
 
-        for shadow in all_shadows:
-            shadow.update()
+        else:
+            display.fill(Colors.GRAYS[30])
 
-        for leaf in head.get_leaves():
-            pygame.draw.rect(display, leaf.color, leaf.border)
-            pygame.draw.rect(display, Colors.BLACK, leaf.room)
-        head.draw_paths()
-        player.update()
+            player.scroll()
+
+            for pos, tile in world.data.items():
+                x, y, z = pos
+                # minimap
+                mm_x = x * MMS
+                mm_y = y * MMS
+                # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
+                # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
+                if tile or True:
+                    blit_x, blit_y = cart_to_iso(x, y, z)
+                    # map
+                    blit_x -= game.scroll[0]
+                    blit_y -= game.scroll[1]
+                    display.blit(tiles[tile], (blit_x, blit_y))
+
+            for shadow in all_shadows:
+                shadow.update()
+
+            for leaf in head.get_leaves():
+                pygame.draw.rect(display, leaf.color, leaf.border)
+                pygame.draw.rect(display, Colors.BLACK, leaf.room)
+            head.draw_paths()
+            player.update()
 
 
-        write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, display.width - 9, 5)
-        
-        write(display, "center", f"{player.x:.0f},{player.y:.0f}", fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 30)
-        for interactive in interactives:
-            if player.rect.bottom < interactive.rect.bottom:
-                interactive.update(player, interactives)
+            write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, display.width - 9, 5)
+            
+            write(display, "center", f"{player.x:.0f},{player.y:.0f}", fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 30)
+            for interactive in interactives:
+                if player.rect.bottom < interactive.rect.bottom:
+                    interactive.update(player, interactives)
 
 
-        # for interactive in interactives:
-        #     if player.rect.bottom > interactive.rect.bottom:
-        #         interactive.update(player, interactives)
+            # for interactive in interactives:
+            #     if player.rect.bottom > interactive.rect.bottom:
+            #         interactive.update(player, interactives)
 
-        # if game.state == States.MENU:
-        #     for button in buttons.values():
-        #         button.update()
+            # if game.state == States.MENU:
+            #     for button in buttons.values():
+            #         button.update()
 
-        write(
-            display,
-            "topright",
-            int(clock.get_fps()),
-            fonts[25],
-            Colors.WHITE,
-            display.width - 9,
-            5,
-        )
-        # for interactive in interactives:
-        #     interactive.update(player, interactives)
+            write(
+                display,
+                "topright",
+                int(clock.get_fps()),
+                fonts[25],
+                Colors.WHITE,
+                display.width - 9,
+                5,
+            )
+            # for interactive in interactives:
+            #     interactive.update(player, interactives)
 
-        # for state, array in buttons.items():
-        #     for button in array:
-        #         if state == game.state:
-        #             button.update()
+            # for state, array in buttons.items():
+            #     for button in array:
+            #         if state == game.state:
+            #             button.update()
 
         match game.state:
             case States.MENU:
