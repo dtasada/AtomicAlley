@@ -10,7 +10,6 @@ from pathlib import Path
 from random import randint as rand, uniform as randf, choice
 from pprint import pprint
 
-
 # Types
 v2 = Tuple[float, float]
 
@@ -29,6 +28,10 @@ def v2_dot(a, b) -> float:
 
 def v2_len(v) -> float:
     return sqrt(v[0] ** 2 + v[1] ** 2)
+
+
+def v2_center(v) -> v2:
+    return [s / 2 for s in v]
 
 
 # Constants
@@ -50,6 +53,11 @@ all_shadows = []
 
 # Init
 pygame.init()
+
+#sfx
+buzzing_channel = pygame.mixer.find_channel()
+light_buzz = pygame.mixer.Sound(Path("resources", "sfx", "buzz.wav"))
+
 fonts = [
     pygame.font.Font(Path("resources", "fonts", "Chicago.ttf"), i) for i in range(101)
 ]
@@ -213,14 +221,32 @@ class Game:
     def __init__(self):
         self.running = True
         self.target_fps = 60
-        self.state = States.PLAY
+        self.state = States.MAIN_MENU
         self.fake_scroll = [0, 0]
         self.scroll = [0, 0]
         self.dialogue = None
         self.focus: Any = None
 
     def set_state(self, target_state):
+        global buzzing_channel
+
+        if target_state == States.MAIN_MENU:
+            buzzing_channel.set_volume(0.7)
+            buzzing_channel.play(light_buzz, -1)
+
+            pygame.mixer.music.unload()
+            pygame.mixer.music.load(Music.MAIN_MENU)
+            pygame.mixer_music.play(-1)
+
+        if self.state == States.MAIN_MENU and target_state == States.PLAY:
+            buzzing_channel.stop()
+            pygame.mixer.music.unload()
+
         self.state = target_state
+
+
+class Music():
+    MAIN_MENU = Path("resources", "sfx", "MainMenuMusic.mp3")
 
 
 class States(Enum):
@@ -245,10 +271,13 @@ class Colors:
     GRAYS = [(x, x, x) for x in range(255)]
     WHITE = (255, 255, 255)
     RED = (255, 0, 0)
+    GREEN = (0, 200, 0)
+    RED = (200, 0, 0)
 
 
 # Globals
 clock = pygame.time.Clock()
+pygame.display.set_caption("Atomic Alley")
 display = pygame.display.set_mode((1280, 720), vsync=1)
 game = Game()
 all_particles = []

@@ -12,6 +12,7 @@ from src.objects import *
 from src.player import *
 from src.workbench import *
 from src.writers import *
+from src.tonics import *
 
 
 clock = pygame.time.Clock()
@@ -81,26 +82,18 @@ def main():
         ],
     }
 
-    # interactives = [
-    #     Interactive(
-    #         "Chest",
-    #         Path("resources", "images", "tiles", "chest.png"),
-    #         (1, 1),
-    #         Interactive.DIALOGUE,
-    #         dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
-    #     ),
-    #     Interactive(
-    #         "Workbench",
-    #         Path("resources", "images", "tiles", "workbench.png"),
-    #         (4, 2),
-    #         Interactive.MUT_STATE,
-    #         target_state=States.WORKBENCH,
-    #         other_lambda=lambda: workbench_ui.gen_grid(),
-    #     ),
-    #     Artifacts.TONIC_OF_LIFE().to_world((6, 6)),
-    # ]
-    interactives = []
+    interactives = [
+        Artifacts.TONIC_OF_LIFE().to_world((20, 20)),
+    ]
 
+    title1 = imgload("resources", "images", "title1.png", scale=5)
+    title2 = imgload("resources", "images", "title2.png", scale=5)
+    title_flicker = 0 
+    buzzing = True
+    last_started = ticks()
+    show_any_key = True
+
+    game.set_state(States.MAIN_MENU)
     # tw = TextWriter("Atomic Alley", (300, 300), FontSize.DIALOGUE, Colors.WHITE)
     while game.running:
         for event in pygame.event.get():
@@ -113,6 +106,13 @@ def main():
                     sys.exit()
 
                 case pygame.KEYDOWN:
+                    if game.state == States.MAIN_MENU:
+                        if event.key == pygame.K_z:
+                            game.set_state(States.PLAY)
+                    
+                    elif game.state == States.PLAY:
+                        player.handle_keypress(event)
+
                     if event.key == pygame.K_ESCAPE:
                         match game.state:
                             case States.PLAY:
@@ -120,92 +120,91 @@ def main():
                             case States.MENU | States.WORKBENCH:
                                 game.set_state(States.PLAY)
 
-        display.fill(Colors.GRAYS[30])
-        display.blit(bg, (0, bg_y))
-        display.blit(bg, (0, bg_y - bg.height))
-        bg_y += 1
-        if bg_y >= display.height:
-            bg_y = 0
+        if game.state == States.MAIN_MENU:
+            bg_offset = v2_sub(v2_center(display.size), pygame.mouse.get_pos())
+            if random.randint(0, 100) > 94:
+                title = title2
+                if buzzing:
+                    buzzing = False
+                    buzzing_channel.pause()
+            else:
+                title = title1
+                if not buzzing:
+                    buzzing_channel.unpause()
+ 
+            title_flicker += 0.04
+            display.blit(title, (0, 0))
 
-        player.scroll()
+            if ticks() - last_started >= 500:
+                show_any_key = not show_any_key
+                last_started = ticks()
+            if show_any_key:
+                write(display, "center", "press [z] to continue", fonts[25], Colors.WHITE, display.width / 2, 6 * display.height / 7)
 
-        num = 0
-        for xo in range(-20, 21):
-            for yo in range(-20, 21):
-                for zo in range(20):
-                    x, y, z = int(player.x) + xo, int(player.y) + yo, zo
-                    if (x, y, z) in world.data:
-                        tile = world.data[(x, y, z)]
-                        # minimap
-                        # mm_x = x * MMS
-                        # mm_y = y * MMS
-                        # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
-                        # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
-                        blit_x, blit_y = cart_to_iso(x, y, z)
-                        # map
-                        blit_x -= game.scroll[0]
-                        blit_y -= game.scroll[1]
-                        display.blit(tiles[tile], (blit_x, blit_y))
-                        num += 1
-        write(display, "topright", num, fonts[25], Colors.WHITE, display.width - 8, 30)
+        if game.state == States.PLAY:
+            display.fill(Colors.GRAYS[30])
+            # display.blit(bg, (0, bg_y))
+            # display.blit(bg, (0, bg_y - bg.height))
+            # bg_y += 1
+            # if bg_y >= display.height:
+            #     bg_y = 0
 
-        for shadow in all_shadows:
-            shadow.update()
+            num = 0
+            for xo in range(-20, 21):
+                for yo in range(-20, 21):
+                    for zo in range(20):
+                        x, y, z = int(player.x) + xo, int(player.y) + yo, zo
+                        if (x, y, z) in world.data:
+                            tile = world.data[(x, y, z)]
+                            # minimap
+                            # mm_x = x * MMS
+                            # mm_y = y * MMS
+                            # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
+                            # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
+                            blit_x, blit_y = cart_to_iso(x, y, z)
+                            # map
+                            blit_x -= game.scroll[0]
+                            blit_y -= game.scroll[1]
+                            display.blit(tiles[tile], (blit_x, blit_y))
+                            num += 1
+            write(display, "topright", num, fonts[25], Colors.WHITE, display.width - 8, 30)
 
-        for leaf in head.get_leaves():
-            pygame.draw.rect(display, leaf.color, leaf.border)
-            pygame.draw.rect(display, Colors.BLACK, leaf.room)
+            # display.fill(Colors.GRAYS[30])
 
-        head.draw_paths()
-        player.update()
+            player.update()
+            player.scroll()
 
-        for particle in all_particles:
-            particle.update()
+            for shadow in all_shadows:
+                shadow.update()
 
-        write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, display.width - 9, 5)
-        
-        # write(display, "center", f"{player.x:.0f},{player.y:.0f}", fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 30)
-        for interactive in interactives:
-            if player.rect.bottom < interactive.rect.bottom:
-                interactive.update(player, interactives)
+            # for leaf in head.get_leaves():
+            #     pygame.draw.rect(display, leaf.color, leaf.border)
+            #     pygame.draw.rect(display, Colors.BLACK, leaf.room)
+            # head.draw_paths()
 
+            for particle in all_particles:
+                particle.update()
 
-        # for interactive in interactives:
-        #     if player.rect.bottom > interactive.rect.bottom:
-        #         interactive.update(player, interactives)
+            write(display, "topright", int(clock.get_fps()), fonts[25], Colors.WHITE, display.width - 9, 5)
+            write(display, "center", f"{player.x:.0f},{player.y:.0f}", fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 30)
+            write(display, "topleft", "press [i] to show inventory", fonts[20], Colors.WHITE, 5, 5)
+            write(display, "topleft", "press [o] to show abilities", fonts[20], Colors.WHITE, 5, 35)
 
-        # if game.state == States.MENU:
-        #     for button in buttons.values():
-        #         button.update()
+            write(
+                display,
+                "topright",
+                int(clock.get_fps()),
+                fonts[25],
+                Colors.WHITE,
+                display.width - 9,
+                5,
+            )
 
-        write(
-            display,
-            "topright",
-            int(clock.get_fps()),
-            fonts[25],
-            Colors.WHITE,
-            display.width - 9,
-            5,
-        )
-        # for interactive in interactives:
-        #     interactive.update(player, interactives)
-
-        # for state, array in buttons.items():
-        #     for button in array:
-        #         if state == game.state:
-        #             button.update()
-
-        match game.state:
-            case States.MENU:
-                pass
-            case States.WORKBENCH:
-                workbench_ui.update()
+            display.blit(player.black_surf, (0, 0))
 
         if game.dialogue:
             game.dialogue.update()
         
-        display.blit(surf, pygame.mouse.get_pos())
-
         pygame.display.update()
         dt = clock.tick(game.target_fps) / (1 / game.target_fps)
 
