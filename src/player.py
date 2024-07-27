@@ -81,9 +81,13 @@ class Player:
         self.last_dash = ticks()
         self.dash_time = 1320
         # hotbar
-        self.hotbar = [Tonic("Ar"), Tonic("Si")]
+        self.hotbar = [Tonic("Ar"), Tonic("Si")] + [None] * 8 + ["U"]
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
+        self.selected_image = imgload("resources", "images", "selected.png")
+        self.unavailable_image = imgload("resources", "images", "unavailable.png")
+        self.selected = 0
+        self.hotbar_length = 9
         self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 80))
         # abilities
         self.show_abilities = False
@@ -119,6 +123,16 @@ class Player:
         
         elif event.key == pygame.K_o:
             self.show_abilities = not self.show_abilities
+        
+        elif event.key == pygame.K_LEFT:
+            self.selected -= 1
+            if self.selected < 0:
+                self.selected = self.hotbar_length - 1
+        
+        elif event.key == pygame.K_RIGHT:
+            self.selected += 1
+            if self.selected > self.hotbar_length - 1:
+                self.selected = 0
 
     def keys(self):
         keys = pygame.key.get_pressed()
@@ -153,7 +167,13 @@ class Player:
             self.hotbar_rect.centerx += (display.width / 2 - self.hotbar_rect.centerx) * m
         display.blit(self.hotbar_image, self.hotbar_rect)
         for x, tonic in enumerate(self.hotbar):
-            tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 40 * x * R, self.hotbar_rect.y + R, *tonic.image.size)
+            if tonic is None:
+                continue
+            if tonic == "U":
+                tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 39 * x * R, self.hotbar_rect.y + R, *self.unavailable_image.size)
+                display.blit(self.unavailable_image, tonic_rect)
+                continue
+            tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 39 * x * R, self.hotbar_rect.y + R, *tonic.image.size)
             display.blit(tonic.image, tonic_rect)
             if tonic_rect.collidepoint(pygame.mouse.get_pos()):
                 xor = pygame.mouse.get_pos()[0] + 5
@@ -166,6 +186,7 @@ class Player:
                 for negative in tonic.negatives:
                     write(display, "topleft", negative, fonts[24], Colors.RED, xor, yor + y)
                     y += 34
+        display.blit(self.selected_image, (self.hotbar_rect.x + self.selected * 39 * R, self.hotbar_rect.y))
         # abilities
         if self.show_abilities:
             self.black_surf.set_alpha(self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2)
