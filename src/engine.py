@@ -1,6 +1,6 @@
 import pygame
 import pygame.gfxdraw
-
+from pygame.time import get_ticks as ticks
 from math import sqrt, floor
 from random import randint as rand
 from pathlib import Path
@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Tuple
 from pathlib import Path
 from random import randint as rand, uniform as randf, choice
+from pprint import pprint
 
 
 # Types
@@ -248,8 +249,9 @@ class Colors:
 
 # Globals
 clock = pygame.time.Clock()
-display = pygame.display.set_mode((1280, 720))
+display = pygame.display.set_mode((1280, 720), vsync=1)
 game = Game()
+all_particles = []
 
 
 class World:
@@ -261,6 +263,16 @@ class World:
         # map_ = keys + left_wall + right_wall
         map_ = []
         self.data[(2, 2, 0)] = 1
+    
+    def try_modifying(self, data):
+        targ_pos, value = data
+        for data in self.data:
+            # data = ((x, y, z), value)
+            if data[0] == targ_pos:
+                return False
+        else:
+            self.data.append((targ_pos, value))
+            return True
 
 
 world = World()
@@ -353,6 +365,26 @@ class Node:
                 return
             self.left.split(cur_level)
             self.right.split(cur_level)
+
+
+class Particle:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.r = rand(3, 6)
+        self.yvel = randf(-4, -5)
+        self.xvel = randf(-1.3, 1.3)
+        self.color = [rand(30, 50)] * 3
+        self.last_spawn = ticks()
+    
+    def update(self):
+        self.x += self.xvel
+        self.yvel += 0.5
+        self.y += self.yvel
+        pygame.gfxdraw.filled_circle(display, int(self.x), int(self.y), self.r, self.color)
+        # pygame.gfxdraw.aacircle(display, int(self.x), int(self.y), self.r, Colors.GRAYS[220])
+        if ticks() - self.last_spawn >= 270:
+            all_particles.remove(self)
 
 
 corridors = []

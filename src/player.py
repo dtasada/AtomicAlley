@@ -1,5 +1,4 @@
 from .engine import *
-from pygame.time import get_ticks as ticks
 
 
 class Effects(Enum):
@@ -78,6 +77,11 @@ class Player:
         self.animate_run = False
         self.dash_x = self.dash_y = 0
         self.dashing = False
+        self.last_dash = ticks()
+        self.dash_time = 1320
+        self.hotbar = False
+        self.hotbar_image = imgload("resources", "images", "hotbar.png")
+        self.hotbar_rect = self.hotbar_image.get_rect(y=30)
 
     def update(self):
         if game.state == States.PLAY and not game.dialogue:
@@ -115,14 +119,26 @@ class Player:
             bottom = True
 
         if pygame.key.get_just_pressed()[pygame.K_SPACE]:
-            self.dash()
+            if ticks() - self.last_dash >= self.dash_time:
+                self.dash()
+        
+        if pygame.key.get_just_pressed()[pygame.K_i]:
+            self.hotbar = not self.hotbar
 
         # self.it = image type, e.g. topleft, bottom, etc.
-        xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
-        self.x += xvel
-        self.y += yvel
-        if it is not None:
-            self.it = it
+        if not self.dashing:
+            xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
+            self.x += xvel
+            self.y += yvel
+            if it is not None:
+                self.it = it
+            
+        m = 0.2
+        if not self.hotbar:
+            self.hotbar_rect.left += (display.width + 10 - self.hotbar_rect.left) * m
+        else:
+            self.hotbar_rect.centerx += (display.width / 2 - self.hotbar_rect.centerx) * m
+        display.blit(self.hotbar_image, self.hotbar_rect)
     
     def get_collisions(self):
         return
@@ -146,6 +162,7 @@ class Player:
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
         self.last_shadow = 0
+        self.last_dash = ticks()
 
     def draw(self):
         if self.dashing:
@@ -189,6 +206,10 @@ class Player:
             self.image = self.images[self.it][int(self.current_frame)]
 
         display.blit(self.image, self.srect)
+        #
+        if ticks() - self.last_dash >= self.dash_time:
+            p = Particle(self.srect.centerx, self.srect.top + 12)
+            all_particles.append(p)
 
     def get_dir_vector(self) -> v2:
         match self.it:
