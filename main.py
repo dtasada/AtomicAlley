@@ -88,7 +88,6 @@ def main():
 
     title1 = imgload("resources", "images", "title1.png", scale=5)
     title2 = imgload("resources", "images", "title2.png", scale=5)
-    title_flicker = 0 
     buzzing = True
     last_started = ticks()
     show_any_key = True
@@ -132,7 +131,6 @@ def main():
                 if not buzzing:
                     buzzing_channel.unpause()
  
-            title_flicker += 0.04
             display.blit(title, (0, 0))
 
             if ticks() - last_started >= 500:
