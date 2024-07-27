@@ -2,7 +2,7 @@ from .engine import *
 from .buttons import *
 from .writers import *
 from .artifacts import *
-from .player import *
+from .atoms import *
 
 from typing import List
 
@@ -20,8 +20,8 @@ class Interactive:
         description,
         tex_path,
         world_pos: v2,
-        do,
-        player_effect: Effect | None = None,
+        do: "Interactive | None" = None,
+        player_effect: List[Atom] | None = None,
         dialogues: List[Dialogue] | None = None,
         target_state: States | None = None,
         other_lambda: LambdaType | None = None,
@@ -76,6 +76,8 @@ class Interactive:
             == self
         ) and v2_len(v2_sub(self.wpos, player.wpos)) <= 3
 
+        display.blit(self.tex, self.rect)
+
         if self.focused:  # self.focused gets updated in main loop
             self.prompt.start()
             self.prompt.update()
@@ -92,5 +94,3 @@ class Interactive:
                     self.other_lambda()
         else:
             self.prompt.kill()
-
-        display.blit(self.tex, self.rect)

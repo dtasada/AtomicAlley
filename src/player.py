@@ -1,17 +1,5 @@
 from .engine import *
-from .tonics import *
-
-
-class Effects(Enum):
-    HEALTH = 0
-    SPEED = 1
-    INTELLIGENCE = 2
-
-
-class Effect:
-    def __init__(self, type_: Effects, magnitude):
-        self.type = type_
-        self.magnitude = magnitude
+from .artifacts import *
 
 
 class Player:
@@ -80,8 +68,17 @@ class Player:
         self.dashing = False
         self.last_dash = ticks()
         self.dash_time = 1320
+<<<<<<< HEAD
         # hotbar
         self.hotbar = [Tonic("Ar"), Tonic("Si")] + [None] * 8 + ["U"]
+=======
+
+        # self.hotbar = [Tonic("Ar"), Tonic("Si")]
+        self.hotbar = [
+            Artifacts.TONIC_OF_LIFE().to_hotbar(),
+            Artifacts.KERNEL_OF_IDEOLOGY().to_hotbar(),
+        ]
+>>>>>>> 6e25bb0b910d511e2f3ba01d416f0a6d83c9cee0
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
         self.selected_image = imgload("resources", "images", "selected.png")
@@ -89,6 +86,7 @@ class Player:
         self.selected = 0
         self.hotbar_length = 9
         self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 80))
+
         # abilities
         self.show_abilities = False
         self.black_surf = pygame.Surface(display.size)
@@ -112,8 +110,9 @@ class Player:
         ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
-    
+
     def handle_keypress(self, event):
+<<<<<<< HEAD
         if event.key == pygame.K_SPACE:
             if ticks() - self.last_dash >= self.dash_time:
                 self.dash()
@@ -133,6 +132,16 @@ class Player:
             self.selected += 1
             if self.selected > self.hotbar_length - 1:
                 self.selected = 0
+=======
+        match event.key:
+            case pygame.K_SPACE:
+                if ticks() - self.last_dash >= self.dash_time:
+                    self.dash()
+            case pygame.K_i:
+                self.show_hotbar = not self.show_hotbar
+            case pygame.K_o:
+                self.show_abilities = not self.show_abilities
+>>>>>>> 6e25bb0b910d511e2f3ba01d416f0a6d83c9cee0
 
     def keys(self):
         keys = pygame.key.get_pressed()
@@ -158,41 +167,51 @@ class Player:
             self.y += yvel
             if it is not None:
                 self.it = it
-            
+
         # hotbar
         m = 0.2
         if not self.show_hotbar:
             self.hotbar_rect.left += (display.width + 10 - self.hotbar_rect.left) * m
         else:
-            self.hotbar_rect.centerx += (display.width / 2 - self.hotbar_rect.centerx) * m
+            self.hotbar_rect.centerx += (
+                display.width / 2 - self.hotbar_rect.centerx
+            ) * m
         display.blit(self.hotbar_image, self.hotbar_rect)
-        for x, tonic in enumerate(self.hotbar):
-            if tonic is None:
-                continue
-            if tonic == "U":
-                tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 39 * x * R, self.hotbar_rect.y + R, *self.unavailable_image.size)
-                display.blit(self.unavailable_image, tonic_rect)
-                continue
-            tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 39 * x * R, self.hotbar_rect.y + R, *tonic.image.size)
-            display.blit(tonic.image, tonic_rect)
-            if tonic_rect.collidepoint(pygame.mouse.get_pos()):
+        for x, artifact in enumerate(self.hotbar):
+            artifact_rect = pygame.Rect(
+                self.hotbar_rect.x + R + 40 * x * R,
+                self.hotbar_rect.y + R,
+                *artifact.image.size,
+            )
+            display.blit(artifact.image, artifact_rect)
+            if artifact_rect.collidepoint(pygame.mouse.get_pos()):
                 xor = pygame.mouse.get_pos()[0] + 5
                 yor = pygame.mouse.get_pos()[1] + 80
-                # xor en yor is de x origin en y origin, niet de xor operator
+                # xor and yor are the x and y origin, not the xor operator
                 y = 0
-                for positive in tonic.positives:
-                    write(display, "topleft", positive, fonts[24], Colors.GREEN, xor, yor + y)
-                    y += 34
-                for negative in tonic.negatives:
-                    write(display, "topleft", negative, fonts[24], Colors.RED, xor, yor + y)
-                    y += 34
-        display.blit(self.selected_image, (self.hotbar_rect.x + self.selected * 39 * R, self.hotbar_rect.y))
+                for atom in artifact.origin.reagents:
+                    for prop in atom.properties:
+                        write(
+                            display,
+                            "topleft",
+                            prop,
+                            fonts[24],
+                            Colors.GREEN,
+                            xor,
+                            yor + y,
+                        )
+                        y += 34
+
         # abilities
         if self.show_abilities:
-            self.black_surf.set_alpha(self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2)
+            self.black_surf.set_alpha(
+                self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2
+            )
         else:
-            self.black_surf.set_alpha(self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2)
-    
+            self.black_surf.set_alpha(
+                self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2
+            )
+
     def get_collisions(self):
         return
 

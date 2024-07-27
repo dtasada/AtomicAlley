@@ -12,17 +12,12 @@ class ItemTypes(Enum):
 
 
 class WorkBenchUI:
-    outer_margin = 128
-    inner_margin = 32
-    cell_size = 64
-    grid_size = (4, 4)
-
     class GridItem:
-        def __init__(self, wpos, origin: Artifact | Atom):
+        def __init__(self, wpos, origin: Artifact | Atom, wb: super):
             self.origin = origin
             self.tex = pygame.transform.scale(
                 pygame.image.load(self.origin.tex_path).convert_alpha(),
-                [WorkBenchUI.cell_size * 1 / 2] * 2,
+                [wb.cell_size * 1 / 2] * 2,
             )
             self.name = self.origin.name.capitalize()
             self.rect = self.tex.get_rect()
@@ -31,17 +26,22 @@ class WorkBenchUI:
         def update(self, wb: "WorkBenchUI"):
             self.rect.center = (
                 wb.grid_start[0] + wb.cell_size * self.wpos[0] + wb.cell_size / 2,
-                wb.grid_start[1] + wb.cell_size * self.wpos[1] + wb.cell_size / 2,
+                wb.grid_start[1]
+                + wb.cell_size * self.wpos[1]
+                + wb.cell_size / 2
+                + wb.yoffset,
             )
             display.blit(self.tex, self.rect)
 
     def __init__(self):
-        self.master_rect = pygame.Rect(
-            self.outer_margin,
-            self.outer_margin,
-            display.width - self.outer_margin * 2,
-            display.height - self.outer_margin * 2,
-        )
+        self.enabled = False
+
+        self.outer_margin = (202, 128)
+        self.inner_margin = 32
+        self.grid_size = (4, 4)
+
+        self.yoffset = 0
+        self.set_vars()
 
         # WorkBenchUI.items is a grid of 4x4, each of which contains None, or a selection of atoms or Artifacts
         self.items: List[List[WorkBenchUI.GridItem | None]] = [
@@ -49,24 +49,48 @@ class WorkBenchUI:
         ] * self.grid_size[0]
         self.gen_grid()
 
+    def enable(self):
+        self.enabled = True
+        self.gen_grid()
+
+    def disable(self):
+        self.enabled = False
+
+    def set_vars(self):
+        if self.yoffset > 0:
+            self.yoffset *= 0.6
+        elif self.yoffset < 0:
+            self.yoffset = 0
+
+        self.master_rect = pygame.Rect(
+            self.outer_margin[0],
+            self.outer_margin[1] + self.yoffset,
+            display.width - self.outer_margin[0] * 2,
+            display.height - self.outer_margin[1] * 2,
+        )
+
+        self.cell_size = (
+            self.master_rect.height - self.inner_margin * 2
+        ) / self.grid_size[1]
+
         self.grid_start = (
             self.master_rect.left + self.inner_margin,
-            self.master_rect.top + self.inner_margin,
+            self.master_rect.top + self.inner_margin + self.yoffset,
         )
         self.grid_end = (
             self.grid_start[0] + self.grid_size[0] * self.cell_size,
-            self.grid_start[1] + self.grid_size[1] * self.cell_size,
+            self.grid_start[1] + self.grid_size[1] * self.cell_size + self.yoffset,
         )
 
         # Lines at right and bottom of grid
         self.closing_lines = (
             (
-                (self.grid_start[0], self.grid_end[1]),
-                (self.grid_end[0], self.grid_end[1]),
+                (self.grid_start[0], self.grid_end[1] + self.yoffset),
+                (self.grid_end[0], self.grid_end[1] + self.yoffset),
             ),
             (
-                (self.grid_end[0], self.grid_start[1]),
-                (self.grid_end[0], self.grid_end[1]),
+                (self.grid_end[0], self.grid_start[1] + self.yoffset),
+                (self.grid_end[0], self.grid_end[1] + self.yoffset),
             ),
         )
 
@@ -84,14 +108,18 @@ class WorkBenchUI:
                         ),
                     )
 
+        self.yoffset = self.master_rect.bottom
+
     def random_item(self, wpos: v2, type_: ItemTypes) -> GridItem:
         all_items = inspect.getmembers(
             Atoms if type_ == ItemTypes.ATOM else Artifacts, inspect.isfunction
         )  # get all available atoms
         item = random.choice(all_items)[1]()
-        return WorkBenchUI.GridItem(wpos, item)
+        return WorkBenchUI.GridItem(wpos, item, self)
 
     def update(self):
+        self.set_vars()
+
         pygame.draw.rect(
             display, Colors.GRAYS[40], self.master_rect, border_radius=BORDER_RADIUS
         )
