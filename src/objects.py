@@ -20,7 +20,7 @@ class Interactive:
         description,
         tex_path,
         world_pos: v2,
-        do,
+        do: "Interactive | None" = None,
         player_effect: Effect | None = None,
         dialogues: List[Dialogue] | None = None,
         target_state: States | None = None,
@@ -76,6 +76,8 @@ class Interactive:
             == self
         ) and v2_len(v2_sub(self.wpos, player.wpos)) <= 3
 
+        display.blit(self.tex, self.rect)
+
         if self.focused:  # self.focused gets updated in main loop
             self.prompt.start()
             self.prompt.update()
@@ -92,5 +94,3 @@ class Interactive:
                     self.other_lambda()
         else:
             self.prompt.kill()
-
-        display.blit(self.tex, self.rect)

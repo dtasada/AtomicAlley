@@ -54,7 +54,7 @@ all_shadows = []
 # Init
 pygame.init()
 
-#sfx
+# sfx
 buzzing_channel = pygame.mixer.find_channel()
 light_buzz = pygame.mixer.Sound(Path("resources", "sfx", "buzz.wav"))
 
@@ -245,16 +245,14 @@ class Game:
         self.state = target_state
 
 
-class Music():
+class Music:
     MAIN_MENU = Path("resources", "sfx", "MainMenuMusic.mp3")
 
 
 class States(Enum):
-    MENU = 0
-    SETTINGS = 1
-    PLAY = 2
-    WORKBENCH = 3
-    MAIN_MENU = 4
+    MAIN_MENU = 0
+    PLAY = 1
+    SETTINGS = 2
 
 
 class FontSize:
@@ -298,7 +296,7 @@ class World:
         # map_ = keys + left_wall + right_wall
         map_ = []
         self.data[(2, 2, 0)] = 1
-    
+
     def try_modifying(self, data):
         targ_pos, value = data
         for data in self.data:
@@ -411,12 +409,14 @@ class Particle:
         self.xvel = randf(-1.3, 1.3)
         self.color = [rand(30, 50)] * 3
         self.last_spawn = ticks()
-    
+
     def update(self):
         self.x += self.xvel
         self.yvel += 0.5
         self.y += self.yvel
-        pygame.gfxdraw.filled_circle(display, int(self.x), int(self.y), self.r, self.color)
+        pygame.gfxdraw.filled_circle(
+            display, int(self.x), int(self.y), self.r, self.color
+        )
         # pygame.gfxdraw.aacircle(display, int(self.x), int(self.y), self.r, Colors.GRAYS[220])
         if ticks() - self.last_spawn >= 270:
             all_particles.remove(self)
