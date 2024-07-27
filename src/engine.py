@@ -253,6 +253,12 @@ game = Game()
 
 
 class World:
+    class Colors:
+        BLACK = 0
+        WHITE = 1
+        GRAY = 2
+        RGB = 3
+
     def __init__(self):
         self.data = {}
         # keys = [x + (0,) for x in itertools.product(range(20), range(20))]

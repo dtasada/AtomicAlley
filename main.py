@@ -17,12 +17,6 @@ from src.writers import *
 clock = pygame.time.Clock()
 tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=3, frames=3)
 
-# 0 = black
-# 1 = white
-# 2 = gray
-# 3 = rgb
-
-# workbench_ui = WorkBenchUI()
 head = Node([0, 0, 200, 200])
 head.split(-1)
 head.draw_paths()
@@ -31,10 +25,12 @@ poss = []
 for leaf in head.get_leaves():
     for xo in range(leaf.room[2]):
         for yo in range(leaf.room[3]):
-            poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, 0))
+            poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 0, World.Colors.BLACK))
             # if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
             #     poss.append((leaf.room[0] + xo, leaf.room[1] + yo, 1, 3))
+
 world.data = {data[:3]: data[3] for data in poss}
+
 for start, end in corridors:
     if start[0] == end[0]:
         y = start[1]
@@ -148,9 +144,6 @@ def main():
             player.srect.centerx,
             player.srect.top - 30,
         )
-        for interactive in interactives:
-            if player.rect.bottom < interactive.rect.bottom:
-                interactive.update(player, interactives)
 
         write(
             display,
@@ -164,11 +157,6 @@ def main():
 
         for interactive in interactives:
             interactive.update(player, interactives)
-
-        for state, array in buttons.items():
-            for button in array:
-                if state == game.state:
-                    button.update()
 
         for state, array in buttons.items():
             for button in array:
