@@ -108,17 +108,16 @@ class Player:
         ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
-    
+
     def handle_keypress(self, event):
-        if event.key == pygame.K_SPACE:
-            if ticks() - self.last_dash >= self.dash_time:
-                self.dash()
-        
-        elif event.key == pygame.K_i:
-            self.show_hotbar = not self.show_hotbar
-        
-        elif event.key == pygame.K_o:
-            self.show_abilities = not self.show_abilities
+        match event.key:
+            case pygame.K_SPACE:
+                if ticks() - self.last_dash >= self.dash_time:
+                    self.dash()
+            case pygame.K_i:
+                self.show_hotbar = not self.show_hotbar
+            case pygame.K_o:
+                self.show_abilities = not self.show_abilities
 
     def keys(self):
         keys = pygame.key.get_pressed()
@@ -144,16 +143,22 @@ class Player:
             self.y += yvel
             if it is not None:
                 self.it = it
-            
+
         # hotbar
         m = 0.2
         if not self.show_hotbar:
             self.hotbar_rect.left += (display.width + 10 - self.hotbar_rect.left) * m
         else:
-            self.hotbar_rect.centerx += (display.width / 2 - self.hotbar_rect.centerx) * m
+            self.hotbar_rect.centerx += (
+                display.width / 2 - self.hotbar_rect.centerx
+            ) * m
         display.blit(self.hotbar_image, self.hotbar_rect)
         for x, tonic in enumerate(self.hotbar):
-            tonic_rect = pygame.Rect(self.hotbar_rect.x + R + 40 * x * R, self.hotbar_rect.y + R, *tonic.image.size)
+            tonic_rect = pygame.Rect(
+                self.hotbar_rect.x + R + 40 * x * R,
+                self.hotbar_rect.y + R,
+                *tonic.image.size,
+            )
             display.blit(tonic.image, tonic_rect)
             if tonic_rect.collidepoint(pygame.mouse.get_pos()):
                 xor = pygame.mouse.get_pos()[0] + 5
@@ -161,17 +166,37 @@ class Player:
                 # xor en yor is de x origin en y origin, niet de xor operator
                 y = 0
                 for positive in tonic.positives:
-                    write(display, "topleft", positive, fonts[24], Colors.GREEN, xor, yor + y)
+                    write(
+                        display,
+                        "topleft",
+                        positive,
+                        fonts[24],
+                        Colors.GREEN,
+                        xor,
+                        yor + y,
+                    )
                     y += 34
                 for negative in tonic.negatives:
-                    write(display, "topleft", negative, fonts[24], Colors.RED, xor, yor + y)
+                    write(
+                        display,
+                        "topleft",
+                        negative,
+                        fonts[24],
+                        Colors.RED,
+                        xor,
+                        yor + y,
+                    )
                     y += 34
         # abilities
         if self.show_abilities:
-            self.black_surf.set_alpha(self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2)
+            self.black_surf.set_alpha(
+                self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2
+            )
         else:
-            self.black_surf.set_alpha(self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2)
-    
+            self.black_surf.set_alpha(
+                self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2
+            )
+
     def get_collisions(self):
         return
 
