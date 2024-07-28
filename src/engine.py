@@ -233,13 +233,14 @@ class Game:
         if target_state == States.MAIN_MENU:
             buzzing_channel.set_volume(0.7)
             buzzing_channel.play(light_buzz, -1)
-
+ 
             pygame.mixer.music.unload()
             pygame.mixer.music.load(Music.MAIN_MENU)
             pygame.mixer_music.play(-1)
 
         if self.state == States.MAIN_MENU and target_state == States.PLAY:
             buzzing_channel.stop()
+            pygame.mixer.music.fadeout(300)
             pygame.mixer.music.unload()
 
         self.state = target_state
