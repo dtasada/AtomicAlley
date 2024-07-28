@@ -137,6 +137,13 @@ class Artifacts:
         reagents=[Atoms.ARSENIC],
     )
 
+    BISMUTH = Artifact(
+        ArtifactType.TONIC,
+        atom_sprs[6],
+        "bismuth",
+        reagents=[Atoms.BISMUTH],
+    )
+
     TONIC_OF_LIFE = Artifact(
         ArtifactType.TONIC,
         Path("resources", "images", "artifacts", "tonic.png"),

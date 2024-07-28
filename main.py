@@ -74,7 +74,6 @@ def count():
 
 
 def main():
-    bg_y = 0
     buttons = {
         States.MAIN_MENU: [
             ButtonToggle((100, 100), 40, "toggle", 10),
@@ -204,10 +203,10 @@ def main():
                 for shadow in all_shadows:
                     shadow.update()
 
-                # for leaf in head.get_leaves():
-                #     pygame.draw.rect(display, leaf.color, leaf.border)
-                #     pygame.draw.rect(display, Colors.BLACK, leaf.room)
-                # head.draw_paths()
+                for leaf in head.get_leaves():
+                    pygame.draw.rect(display, leaf.color, leaf.border)
+                    pygame.draw.rect(display, Colors.BLACK, leaf.room)
+                head.draw_paths()
 
                 player.update()
                 player.scroll()
