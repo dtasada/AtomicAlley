@@ -11,18 +11,19 @@ class Player:
         self.blit_x = self.blit_y = 0
         self.dpos = (self.blit_x, self.blit_y)
         self.images = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
-                "resources",
-                "images",
-                "player",
-                "player_sheet.png",
-                columns=7,
-                row=i,
-                rows=5,
-                frames=1,
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
+            for i, row in enumerate(
+                imgload(
+                    "resources",
+                    "images",
+                    "player",
+                    "player_sheet.png",
+                    rows=5,
+                    columns=7,
+                )
             )
-            for i in range(5)
         }
+
         self.images["left"] = [
             pygame.transform.flip(i, True, False) for i in self.images["right"]
         ]
@@ -34,18 +35,17 @@ class Player:
         ]
         self.check_rects = []
         self.run_frames = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
-                "resources",
-                "images",
-                "player",
-                "player_sheet.png",
-                columns=7,
-                row=i,
-                rows=5,
-                start_frame=1,
-                frames=6,
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
+            for i, row in enumerate(
+                imgload(
+                    "resources",
+                    "images",
+                    "player",
+                    "player_sheet.png",
+                    rows=5,
+                    columns=7,
+                )
             )
-            for i in range(5)
         }
         self.run_frames["left"] = [
             pygame.transform.flip(i, True, False) for i in self.run_frames["right"]
@@ -70,26 +70,28 @@ class Player:
         self.last_dash = ticks()
         self.dash_time = 1320
 
-        # self.hotbar = [Tonic("Ar"), Tonic("Si")]
         self.hotbar = [
-            Artifacts.ARSENIC.to_hotbar(),
+            Artifacts.ARSENIC_FIZZ.to_hotbar(),
             Artifacts.BISMUTH.to_hotbar(),
         ]
-        # wat is dit voor rust ass looking code
-        # dit is python
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
+        self.inventory_image = imgload("resources", "images", "inventory.png")
         self.selected_image = imgload("resources", "images", "selected.png")
         self.unavailable_image = imgload("resources", "images", "unavailable.png")
         self.selected = 0
         self.hotbar_length = 9
-        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 80))
+        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 120))
+        self.inventory_rect = self.inventory_image.get_rect(topleft=(display.width + 10, 300))
 
         # abilities
         self.show_abilities = False
         self.black_surf = pygame.Surface(display.size)
         self.black_surf.set_alpha(0)
         self.abilities = []
+        self.black_stripe = pygame.Surface((display.width, 500))
+        self.black_stripe.set_alpha(120)
+        self.black_stripe_rect = self.black_stripe.get_rect(topleft=(display.width + 10, 100))
     
     @property
     def x(self):
@@ -129,20 +131,20 @@ class Player:
         if event.key == pygame.K_SPACE:
             if ticks() - self.last_dash >= self.dash_time or True:
                 self.dash()
-        
+
         elif event.key == pygame.K_i:
             if not self.show_abilities:
                 self.show_hotbar = not self.show_hotbar
-        
+
         elif event.key == pygame.K_o:
             if not self.show_hotbar:
                 self.show_abilities = not self.show_abilities
-        
+
         elif event.key == pygame.K_LEFT:
             self.selected -= 1
             if self.selected < 0:
                 self.selected = self.hotbar_length - 1
-        
+
         elif event.key == pygame.K_RIGHT:
             self.selected += 1
             if self.selected > self.hotbar_length - 1:
@@ -188,13 +190,18 @@ class Player:
         # hotbar
         m = 0.2
         if not self.show_hotbar:
-            self.hotbar_rect.left += (display.width + 10 - self.hotbar_rect.left) * m
+            d = (display.width + 10 - self.hotbar_rect.left) * m
+            bsd = (display.width + 10 - self.black_stripe_rect.left) * m
         else:
-            self.hotbar_rect.centerx += (
-                display.width / 2 - self.hotbar_rect.centerx
-            ) * m
+            d = (display.width / 2 - self.hotbar_rect.centerx) * m
+            bsd = (0 - self.black_stripe_rect.left) * m
+        self.hotbar_rect.centerx += d
+        self.inventory_rect.centerx += d
+        self.black_stripe_rect.left += bsd
 
+        display.blit(self.black_stripe, self.black_stripe_rect)
         display.blit(self.hotbar_image, self.hotbar_rect)
+        display.blit(self.inventory_image, self.inventory_rect)
         for x, artifact in enumerate(self.hotbar):
             artifact_rect = pygame.Rect(
                 self.hotbar_rect.x + R + 39 * x * R,
@@ -210,7 +217,14 @@ class Player:
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
                         if prop.mag_type == MagType.REL_COEF:
-                            mag = str((prop.magnitude * 100) if prop.magnitude < 0 else ("+" + str(prop.magnitude * 100))) + "%"
+                            mag = (
+                                str(
+                                    (prop.magnitude * 100)
+                                    if prop.magnitude < 0
+                                    else ("+" + str(prop.magnitude * 100))
+                                )
+                                + "%"
+                            )
                             if prop.type == Properties.MUT_ALL_STATS:
                                 type_ = "on all stats"
                             else:

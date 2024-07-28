@@ -3,16 +3,8 @@ from .engine import *
 from .objects import *
 from .atoms import *
 
-from copy import deepcopy
-
 from enum import Enum
 from typing import List
-from pathlib import Path
-
-
-"""
-nee maar als je 235 classes nodig hebt voor een potion dan gaat er iets mis
-"""
 
 
 class ArtifactInteractive(Interactive):
@@ -21,17 +13,19 @@ class ArtifactInteractive(Interactive):
     def __init__(self, origin: Artifact, world_pos: v2):
         super().__init__(
             origin.name,
-            origin.tex_path,
+            origin.image,
             world_pos,
             Interactive.MUT_PLAYER,
-            [atom.properties for atom in origin.reagents] if origin.reagents else origin.properties,
+            (
+                [atom.properties for atom in origin.reagents]
+                if origin.reagents
+                else origin.properties
+            ),
         )
         self.name = origin.name
-        self.tex = pygame.transform.scale(
-            pygame.image.load(origin.tex_path).convert_alpha(), (SR / 8, SR / 8)
-        )
+        self.image = pygame.transform.scale(origin.image, (SR / 8, SR / 8))
         self.wpos = world_pos
-        self.rect = self.tex.get_rect()
+        self.rect = self.image.get_rect()
         self.reagents = origin.reagents
 
     def update(self, player, interactives):
@@ -47,12 +41,12 @@ class ArtifactType(Enum):
 
 
 class Artifact:
-    """ Base Artifact structure """
+    """Base Artifact structure"""
 
     def __init__(
         self,
         type_: ArtifactType,
-        tex_path,
+        image,
         name: str | None = None,
         reagents: List[Atom] | None = None,
         properties: List[Property] | None = None,
@@ -60,7 +54,7 @@ class Artifact:
     ):
         self.type = type_
         self.name = name
-        self.tex_path = tex_path
+        self.image = image
         self.reagents = reagents
         self.properties = properties
         if color is not None:
@@ -110,7 +104,7 @@ class ArtifactHotbar(Artifact):
         super().__init__(
             origin.type,
             origin.name,
-            origin.tex_path,
+            origin.image,
             origin.reagents,
             origin.properties,
             origin.color,
@@ -139,23 +133,24 @@ class Artifacts:
         color=(200, 200, 200)
     )
 
-    ARSENIC = Artifact(
+    ARSENIC_FIZZ = Artifact(
         ArtifactType.TONIC,
-        atom_sprs[0],
-        "arsenic",
+        imgload("resources", "images", "artifacts", "tonic.png"),
+        "Tonic of Life",
         reagents=[Atoms.ARSENIC],
+        color=Colors.GREEN,
     )
 
     BISMUTH = Artifact(
         ArtifactType.TONIC,
-        atom_sprs[6],
+        atom_images[6],
         "bismuth",
         reagents=[Atoms.BISMUTH],
     )
 
     TONIC_OF_LIFE = Artifact(
         ArtifactType.TONIC,
-        Path("resources", "images", "artifacts", "tonic.png"),
+        imgload("resources", "images", "artifacts", "tonic.png"),
         "Tonic of Life",
         properties=[
             Property(Properties.HEALTH, MagType.SET_COEF, 1.0),
@@ -166,7 +161,7 @@ class Artifacts:
 
     KERNEL_OF_IDEOLOGY = Artifact(
         ArtifactType.KERNEL,
-        Path("resources", "images", "artifacts", "kernel.png"),
+        imgload("resources", "images", "artifacts", "kernel.png"),
         "Kernel of Ideology",
         properties=[
             Property(Properties.DODGE_CHANCE, MagType.REL_NUM, +0.1),

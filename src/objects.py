@@ -1,7 +1,6 @@
 from .engine import *
 from .buttons import *
 from .writers import *
-# from .artifacts import *
 from .atoms import *
 
 from typing import List
@@ -18,24 +17,20 @@ class Interactive:
     def __init__(
         self,
         description,
-        tex_path,
+        image,
         world_pos: v2,
         do: "Interactive | None" = None,
         player_effect: List[Atom] | None = None,
         dialogues: List[Dialogue] | None = None,
         target_state: States | None = None,
         other_lambda: LambdaType | None = None,
+        anchor: str | None = None,
     ):
         self.focused = False
         self.description = description
-        self.anchor = "midleft" if "tiles" in Path(tex_path).as_posix() else "center"
-        if isinstance(tex_path, pygame.Surface):
-            self.tex = tex_path
-        else:
-            self.tex = pygame.transform.scale_by(
-                pygame.image.load(tex_path).convert_alpha(), R
-            )
-        self.rect = self.tex.get_rect()
+        self.anchor = anchor or "topleft"
+        self.image = image
+        self.rect = self.image.get_rect()
         self.do = do
         self.other_lambda = other_lambda
         self.wpos = world_pos  # world pos, not blit pos
@@ -67,7 +62,7 @@ class Interactive:
             sys.exit(1)
 
     def update(self, player, interactives):
-        setattr(self.rect, self.anchor, v2_sub(cart_to_iso(*self.wpos, 0), game.scroll))
+        setattr(self.rect, self.anchor, v2_sub(cart_to_iso(*self.wpos, 1), game.scroll))
 
         # update interactives
         self.focused = (
@@ -79,7 +74,7 @@ class Interactive:
             == self
         ) and v2_len(v2_sub(self.wpos, player.wpos)) <= 3
 
-        display.blit(self.tex, self.rect)
+        display.blit(self.image, self.rect)
 
         if self.focused:  # self.focused gets updated in main loop
             self.prompt.start()
