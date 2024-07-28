@@ -41,8 +41,9 @@ class ArtifactInteractive(Interactive):
 class ArtifactType(Enum):
     "All possible types of artifacts"
     TONIC = 0
-    KERNEL = 0
-    DOCUMENT = 0
+    KERNEL = 1
+    DOCUMENT = 2
+    EM_FLASK = 3
 
 
 class Artifact:
@@ -129,6 +130,14 @@ class ArtifactHotbar(Artifact):
 
 class Artifacts:
     "All different artifact implementations"
+
+    EM_FLASK = Artifact(
+        ArtifactType,
+        imgload("resources", "images", "erlenmeyer.png"),
+        "erlenmeyer",
+        properties=[Properties.NONE],
+        color=(200, 200, 200)
+    )
 
     ARSENIC = Artifact(
         ArtifactType.TONIC,

@@ -4,8 +4,9 @@ from .artifacts import *
 
 class Player:
     def __init__(self):
-        self.x = 0
-        self.y = 0
+        # self.x = 0
+        # self.y = 0
+        self.mmrect = pygame.FRect((0, 0, 20, 20))
         self.wpos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
         self.dpos = (self.blit_x, self.blit_y)
@@ -31,7 +32,7 @@ class Player:
         self.images["topleft"] = [
             pygame.transform.flip(i, True, False) for i in self.images["topright"]
         ]
-
+        self.check_rects = []
         self.run_frames = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
                 "resources",
@@ -89,6 +90,22 @@ class Player:
         self.black_surf = pygame.Surface(display.size)
         self.black_surf.set_alpha(0)
         self.abilities = []
+    
+    @property
+    def x(self):
+        return self.mmrect.x / game.rect_scale
+
+    @x.setter
+    def x(self, value):
+        self.mmrect.x = value * game.rect_scale
+
+    @property
+    def y(self):
+        return self.mmrect.y / game.rect_scale
+    
+    @y.setter
+    def y(self, value):
+        self.mmrect.y = value * game.rect_scale
 
     def update(self):
         if game.state == States.PLAY and not game.dialogue:
@@ -110,7 +127,7 @@ class Player:
 
     def handle_keypress(self, event):
         if event.key == pygame.K_SPACE:
-            if ticks() - self.last_dash >= self.dash_time:
+            if ticks() - self.last_dash >= self.dash_time or True:
                 self.dash()
         
         elif event.key == pygame.K_i:
@@ -152,7 +169,19 @@ class Player:
         if not self.dashing:
             xvel, yvel, it = cart_dir_to_vel(left, right, top, bottom, m=m)
             self.x += xvel
+            for cr in self.check_rects:
+                if self.mmrect.colliderect(cr):
+                    if xvel > 0:
+                        self.mmrect.right = cr.left
+                    else:
+                        self.mmrect.left = cr.right
             self.y += yvel
+            for cr in self.check_rects:
+                if self.mmrect.colliderect(cr):
+                    if yvel > 0:
+                        self.mmrect.bottom = cr.top
+                    else:
+                        self.mmrect.top = cr.bottom
             if it is not None:
                 self.it = it
 
@@ -168,7 +197,7 @@ class Player:
         display.blit(self.hotbar_image, self.hotbar_rect)
         for x, artifact in enumerate(self.hotbar):
             artifact_rect = pygame.Rect(
-                self.hotbar_rect.x + R + 40 * x * R,
+                self.hotbar_rect.x + R + 39 * x * R,
                 self.hotbar_rect.y + R,
                 *artifact.image.size,
             )
@@ -231,7 +260,7 @@ class Player:
                 "topleft",
             )
         }
-        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=2)
+        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=4)
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
         self.last_shadow = 0
@@ -257,8 +286,7 @@ class Player:
                 self.dashing = False
         #
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
-        mm_x, mm_y = cart_to_mm(self.x, self.y, 0)
-        pygame.draw.rect(display, Colors.RED, (self.x, self.y, 5, 5))
+        # pygame.draw.rect(display, Colors.RED, self.mmrect)
         self.blit_x += S / 2
         self.blit_y += S / 4
         #

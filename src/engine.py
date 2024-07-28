@@ -227,6 +227,7 @@ class Game:
         self.dialogue = None
         self.focus: Any = None
         self.loading = False
+        self.rect_scale = 20
 
     def set_state(self, target_state):
         global buzzing_channel
@@ -299,11 +300,11 @@ class World:
         map_ = []
         self.data[(2, 2, 0)] = 1
 
-    def try_modifying(self, data):
+    def try_modifying(self, data, check_higher=False):
         targ_pos, value = data
         for data in self.data:
             # data = ((x, y, z), value)
-            if data[0] == targ_pos:
+            if data[0] == targ_pos or (check_higher and data[0][:2] == targ_pos[:2]):
                 return False
         else:
             self.data.append((targ_pos, value))
@@ -312,6 +313,11 @@ class World:
 
 world = World()
 max_level = 5
+
+
+class RoomType(Enum):
+    NORMAL = 0
+    BAR = 1
 
 
 class Node:
@@ -344,6 +350,13 @@ class Node:
     @property
     def center(self):
         return [int(self.x + self.w / 2), int(self.y + self.h / 2)]
+
+    def set_room_type(self):
+        room_type = rand(0, 1)
+        if room_type == 0:
+            self.room_type = RoomType.NORMAL
+        else:
+            self.room_type = RoomType.BAR
 
     def get_leaves(self):
         if self.left is None and self.right is None:
@@ -378,6 +391,7 @@ class Node:
             w = bottomright[0] - topleft[0]
             h = bottomright[1] - topleft[1]
             self.room = [*topleft, w, h]
+            self.set_room_type()
             return
         cur_level = self.level
         if rand(0, 1) == 0:

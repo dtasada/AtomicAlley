@@ -17,7 +17,7 @@ from threading import Thread
 
 
 clock = pygame.time.Clock()
-tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=4, frames=4)
+tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=6, frames=6)
 tiles.extend(
     [
         imgload("resources", "images", "tiles", "bar.png"),
@@ -31,17 +31,30 @@ head.split(-1)
 head.draw_paths()
 
 # poss = []
+ground = 5
+wall = 1
+bridge = 3
+wall_height = 5
+bar1, bar2 = 0, 4
+bar = 6
+invisible = "i"
+
 def generate_world():
     world.data = []
     for leaf in head.get_leaves():
         for xo in range(leaf.room[2]):
             for yo in range(leaf.room[3]):
+                if leaf.room_type == RoomType.BAR:
+                    ground_tile = ((xo + yo) % 2 == 0) * 4
+                elif leaf.room_type == RoomType.NORMAL:
+                    ground_tile = ground
                 world.data.append(
-                    ((leaf.room[0] + xo, leaf.room[1] + yo, 0), World.Colors.RGB)
+                    ((leaf.room[0] + xo, leaf.room[1] + yo, 0), ground_tile)
                 )
+                # walls
                 if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
-                    for zo in range(1, 5):
-                        world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), 1))
+                    for zo in range(1, wall_height):
+                        world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), wall))
 
     for start, end in corridors:
         if start[0] == end[0]:
@@ -50,20 +63,37 @@ def generate_world():
             while y != end[1]:
                 y += sign(end[1] - start[1])
                 for o in range(-2, 3):
-                    world.try_modifying(((start[0] + o, y, 0), 1))
+                    # remove walls for entrance
+                    if ((start[0] + o, y, 1), wall) in world.data:
+                        for zo in range(1, wall_height):
+                            world.data.remove(((start[0] + o, y, zo), wall))
+                    # invisible walls
+                    pass
+                    # make bridge
+                    world.try_modifying(((start[0] + o, y, 0), bridge))
         elif start[1] == end[1]:
             # ys are equal, so horizontal bar, so vary vertically
             x = start[0]
             while x != end[0]:
                 x += sign(end[0] - start[0])
                 for o in range(-2, 3):
-                    world.try_modifying(((x, start[1] + o, 0), 1))
+                    # remove walls for entrance
+                    if ((x, start[1] + o, 1), wall) in world.data:
+                        for zo in range(1, wall_height):
+                            world.data.remove(((x, start[1] + o, zo), wall))
+                    # invisible walls
+                    pass
+                    # make bridge
+                    world.try_modifying(((x, start[1] + o, 0), bridge))
 
     # sort the list (use z-buffering)
-    world.data.sort(key=lambda x: x[0])
+    world.data.sort(key=lambda x: (x[0][2], x[0][0], x[0][1]))
+
+    pprint(world.data)
 
     # convert tuples to a dictionary
     world.data = {k: v for k, v in world.data}
+
     # stop loading sign
     game.loading = False
 
@@ -114,6 +144,7 @@ def main():
     show_any_key = True
 
     game.set_state(States.MAIN_MENU)
+
     while game.running:
         for event in pygame.event.get():
             for state, array in buttons.items():
@@ -144,6 +175,9 @@ def main():
                                     game.set_state(States.MAIN_MENU)
                             case States.MAIN_MENU:
                                 game.set_state(States.PLAY)
+                    
+                    elif event.key == pygame.K_f:
+                        world.data[(10, 10, 1)] = 2
 
         match game.state:
             case States.MAIN_MENU:
@@ -178,6 +212,7 @@ def main():
             case States.PLAY:
                 display.fill(Colors.GRAYS[30])
 
+                player.check_rects = []
                 for xo in range(-20, 21):
                     for yo in range(-20, 21):
                         for zo in range(6):
@@ -185,12 +220,15 @@ def main():
                             if (x, y, z) not in world.data:
                                 continue
                             tile = world.data[(x, y, z)]
+                            if z > 0:
+                                rect = pygame.Rect(x * game.rect_scale, y * game.rect_scale, 20, 20)
+                                player.check_rects.append(rect)
                             # minimap
                             mm_x = x * MMS
                             mm_y = y * MMS
                             # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
                             # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
-                            if tile or True:
+                            if tile != "i":
                                 blit_x, blit_y = cart_to_iso(x, y, z)
                                 # map
                                 blit_x -= game.scroll[0]
@@ -203,10 +241,13 @@ def main():
                 for shadow in all_shadows:
                     shadow.update()
 
-                for leaf in head.get_leaves():
-                    pygame.draw.rect(display, leaf.color, leaf.border)
-                    pygame.draw.rect(display, Colors.BLACK, leaf.room)
-                head.draw_paths()
+                # for leaf in head.get_leaves():
+                #     pygame.draw.rect(display, leaf.color, leaf.border)
+                #     pygame.draw.rect(display, Colors.BLACK, leaf.room)
+                # head.draw_paths()
+
+                # for cr in player.check_rects:
+                #     pygame.draw.rect(display, [220, 220, 220], cr)
 
                 player.update()
                 player.scroll()
@@ -240,7 +281,7 @@ def main():
                     fonts[20],
                     Colors.WHITE,
                     5,
-                    5,
+                    30,
                 )
                 write(
                     display,
@@ -249,7 +290,7 @@ def main():
                     fonts[20],
                     Colors.WHITE,
                     5,
-                    35,
+                    70,
                 )
 
                 display.blit(player.black_surf, (0, 0))
