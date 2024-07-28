@@ -10,28 +10,24 @@ class Player:
         self.blit_x = self.blit_y = 0
         self.dpos = (self.blit_x, self.blit_y)
         self.images = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
-            for i, row in enumerate(
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: image
+            for i, image in enumerate(
                 imgload(
                     "resources",
                     "images",
                     "player",
                     "player_sheet.png",
                     rows=5,
-                    columns=7,
                 )
             )
         }
 
-        self.images["left"] = [
-            pygame.transform.flip(i, True, False) for i in self.images["right"]
-        ]
-        self.images["bottomright"] = [
-            pygame.transform.flip(i, True, False) for i in self.images["bottomleft"]
-        ]
-        self.images["topleft"] = [
-            pygame.transform.flip(i, True, False) for i in self.images["topright"]
-        ]
+        self.images["left"] = pygame.transform.flip(self.images["right"], True, False) 
+        
+        self.images["bottomright"] = pygame.transform.flip(self.images["bottomleft"], True, False) 
+        
+        self.images["topleft"] = pygame.transform.flip(self.images["topright"], True, False) 
+    
 
         self.run_frames = {
             ("bottomleft", "bottom", "right", "topright", "top")[i]: row
@@ -40,9 +36,9 @@ class Player:
                     "resources",
                     "images",
                     "player",
-                    "player_sheet.png",
+                    "player_run_sheet.png",
                     rows=5,
-                    columns=7,
+                    columns=6,
                 )
             )
         }
@@ -58,7 +54,7 @@ class Player:
 
         self.current_frame = 0
         self.it = "bottom"
-        self.image = self.images[self.it][self.current_frame]
+        self.image = self.images[self.it]
         self.width, self.height = self.image.get_size()
         self.rect = self.image.get_rect()
         self.srect = self.image.get_rect()
@@ -280,7 +276,7 @@ class Player:
             self.animate_run = False
         else:
             self.current_frame = 0
-            self.image = self.images[self.it][int(self.current_frame)]
+            self.image = self.images[self.it]
 
         display.blit(self.image, self.srect)
         #
