@@ -20,7 +20,7 @@ class WorkBenchUI:
                 [wb.cell_size * 1 / 2] * 2,
             )
             self.name = self.origin.name.capitalize()
-            self.rect = self.tex.get_rect()
+            # self.rect = self.tex.get_rect()
             self.wpos = wpos
 
         def update(self, wb: "WorkBenchUI"):
@@ -111,10 +111,9 @@ class WorkBenchUI:
         self.yoffset = self.master_rect.bottom
 
     def random_item(self, wpos: v2, type_: ItemTypes) -> GridItem:
-        all_items = inspect.getmembers(
-            Atoms if type_ == ItemTypes.ATOM else Artifacts, inspect.isfunction
-        )  # get all available atoms
-        item = random.choice(all_items)[1]()
+        type_ = Atoms if type_ == ItemTypes.ATOM else Artifacts
+        all_items = [var for var in vars(type_) if not var.startswith("__")]
+        item = getattr(type_, random.choice(all_items))
         return WorkBenchUI.GridItem(wpos, item, self)
 
     def update(self):

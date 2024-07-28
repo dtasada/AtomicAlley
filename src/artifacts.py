@@ -1,5 +1,4 @@
 from __future__ import annotations, absolute_import
-
 from .engine import *
 from .objects import *
 from .atoms import *
@@ -11,6 +10,11 @@ from typing import List
 from pathlib import Path
 
 
+"""
+nee maar als je 235 classes nodig hebt voor een potion dan gaat er iets mis
+"""
+
+
 class ArtifactInteractive(Interactive):
     "Artifact class for floor drops"
 
@@ -20,7 +24,7 @@ class ArtifactInteractive(Interactive):
             origin.tex_path,
             world_pos,
             Interactive.MUT_PLAYER,
-            origin.reagents,
+            [atom.properties for atom in origin.reagents] if origin.reagents else origin.properties,
         )
         self.name = origin.name
         self.tex = pygame.transform.scale(
@@ -42,7 +46,7 @@ class ArtifactType(Enum):
 
 
 class Artifact:
-    "Base Artifact structure"
+    """ Base Artifact structure """
 
     def __init__(
         self,
@@ -58,7 +62,10 @@ class Artifact:
         self.tex_path = tex_path
         self.reagents = reagents
         self.properties = properties
-        self.color = color
+        if color is not None:
+            self.color = pygame.Color(color)
+        else:
+            self.color = color
 
         if not self.reagents:
             if not self.color:
@@ -69,7 +76,7 @@ class Artifact:
                 print(
                     f"Error: Initialized an Artifact with no reagents _and_ no properties (by name of {name})"
                 )
-            sys.exit(1)
+                sys.exit(1)
         elif self.properties and self.color:
             print(
                 "Error: Initialized an Artifact with no properties but also a given color"
@@ -82,7 +89,7 @@ class Artifact:
                 if self.color:
                     self.color = self.color.lerp(atom.color, 0.5)
                 else:
-                    self.color = atom.color  # the first iteration
+                    self.color = pygame.Color(atom.color)  # the first iteration
 
         # _meth_ to determine whether text should be black or white
         luminance = (
@@ -107,7 +114,7 @@ class ArtifactHotbar(Artifact):
             origin.properties,
             origin.color,
         )
-
+        self.origin = origin
         self.image = pygame.Surface((38 * R, 38 * R))
         self.image.fill(self.color)
         write(
@@ -123,32 +130,31 @@ class ArtifactHotbar(Artifact):
 class Artifacts:
     "All different artifact implementations"
 
-    @staticmethod
-    def TONIC_OF_LIFE():
-        return deepcopy(
-            Artifact(
-                ArtifactType.TONIC,
-                "Tonic of Life",
-                Path("resources", "images", "artifacts", "tonic.png"),
-                properties=[
-                    Property(Properties.HEALTH, MagType.SET_COEF, 1.0),
-                    Property(Properties.MAX_HEALTH, MagType.SET_COEF, 1.5),
-                ],
-                color=Colors.GREEN,
-            )
-        )
+    ARSENIC = Artifact(
+        ArtifactType.TONIC,
+        atom_sprs[0],
+        "arsenic",
+        reagents=[Atoms.ARSENIC],
+    )
 
-    @staticmethod
-    def KERNEL_OF_IDEOLOGY():
-        return deepcopy(
-            Artifact(
-                ArtifactType.KERNEL,
-                "Kernel of Ideology",
-                Path("resources", "images", "artifacts", "kernel.png"),
-                properties=[
-                    Property(Properties.DODGE_CHANCE, MagType.REL_NUM, +0.1),
-                    Property(Properties.TRADE_FOR_CHOICES, MagType.SET_ABS, 2),
-                ],
-                color=Colors.GREEN,
-            )
-        )
+    TONIC_OF_LIFE = Artifact(
+        ArtifactType.TONIC,
+        Path("resources", "images", "artifacts", "tonic.png"),
+        "Tonic of Life",
+        properties=[
+            Property(Properties.HEALTH, MagType.SET_COEF, 1.0),
+            Property(Properties.MAX_HEALTH, MagType.SET_COEF, 1.5),
+        ],
+        color=Colors.GREEN,
+    )
+
+    KERNEL_OF_IDEOLOGY = Artifact(
+        ArtifactType.KERNEL,
+        Path("resources", "images", "artifacts", "kernel.png"),
+        "Kernel of Ideology",
+        properties=[
+            Property(Properties.DODGE_CHANCE, MagType.REL_NUM, +0.1),
+            Property(Properties.TRADE_FOR_CHOICES, MagType.SET_ABS, 2),
+        ],
+        color=Colors.GREEN,
+    )

@@ -68,17 +68,13 @@ class Player:
         self.dashing = False
         self.last_dash = ticks()
         self.dash_time = 1320
-<<<<<<< HEAD
-        # hotbar
-        self.hotbar = [Tonic("Ar"), Tonic("Si")] + [None] * 8 + ["U"]
-=======
 
         # self.hotbar = [Tonic("Ar"), Tonic("Si")]
         self.hotbar = [
-            Artifacts.TONIC_OF_LIFE().to_hotbar(),
-            Artifacts.KERNEL_OF_IDEOLOGY().to_hotbar(),
+            Artifacts.ARSENIC.to_hotbar(),
         ]
->>>>>>> 6e25bb0b910d511e2f3ba01d416f0a6d83c9cee0
+        # wat is dit voor rust ass looking code
+        # dit is python
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
         self.selected_image = imgload("resources", "images", "selected.png")
@@ -112,7 +108,6 @@ class Player:
         game.scroll[1] = int(game.fake_scroll[1])
 
     def handle_keypress(self, event):
-<<<<<<< HEAD
         if event.key == pygame.K_SPACE:
             if ticks() - self.last_dash >= self.dash_time:
                 self.dash()
@@ -132,16 +127,6 @@ class Player:
             self.selected += 1
             if self.selected > self.hotbar_length - 1:
                 self.selected = 0
-=======
-        match event.key:
-            case pygame.K_SPACE:
-                if ticks() - self.last_dash >= self.dash_time:
-                    self.dash()
-            case pygame.K_i:
-                self.show_hotbar = not self.show_hotbar
-            case pygame.K_o:
-                self.show_abilities = not self.show_abilities
->>>>>>> 6e25bb0b910d511e2f3ba01d416f0a6d83c9cee0
 
     def keys(self):
         keys = pygame.key.get_pressed()
@@ -176,6 +161,7 @@ class Player:
             self.hotbar_rect.centerx += (
                 display.width / 2 - self.hotbar_rect.centerx
             ) * m
+
         display.blit(self.hotbar_image, self.hotbar_rect)
         for x, artifact in enumerate(self.hotbar):
             artifact_rect = pygame.Rect(
@@ -191,10 +177,12 @@ class Player:
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
+                        prop_text = f"{prop.mag_type} {prop.type}"
+                        print(prop.mag_type, prop.magnitude, prop.type)
                         write(
                             display,
                             "topleft",
-                            prop,
+                            prop_text,
                             fonts[24],
                             Colors.GREEN,
                             xor,

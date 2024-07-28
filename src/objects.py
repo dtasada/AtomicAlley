@@ -1,7 +1,7 @@
 from .engine import *
 from .buttons import *
 from .writers import *
-from .artifacts import *
+# from .artifacts import *
 from .atoms import *
 
 from typing import List
@@ -28,10 +28,13 @@ class Interactive:
     ):
         self.focused = False
         self.description = description
-        self.anchor = "midleft" if "tiles" in tex_path.as_posix() else "center"
-        self.tex = pygame.transform.scale_by(
-            pygame.image.load(tex_path).convert_alpha(), R
-        )
+        self.anchor = "midleft" if "tiles" in Path(tex_path).as_posix() else "center"
+        if isinstance(tex_path, pygame.Surface):
+            self.tex = tex_path
+        else:
+            self.tex = pygame.transform.scale_by(
+                pygame.image.load(tex_path).convert_alpha(), R
+            )
         self.rect = self.tex.get_rect()
         self.do = do
         self.other_lambda = other_lambda

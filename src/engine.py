@@ -226,6 +226,7 @@ class Game:
         self.scroll = [0, 0]
         self.dialogue = None
         self.focus: Any = None
+        self.loading = False
 
     def set_state(self, target_state):
         global buzzing_channel

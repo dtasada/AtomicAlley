@@ -13,6 +13,8 @@ from src.player import *
 from src.workbench import *
 from src.writers import *
 
+from threading import Thread
+
 
 clock = pygame.time.Clock()
 tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=4, frames=4)
@@ -29,46 +31,46 @@ head.split(-1)
 head.draw_paths()
 
 # poss = []
-world.data = []
-for leaf in head.get_leaves():
-    for xo in range(leaf.room[2]):
-        for yo in range(leaf.room[3]):
-            world.data.append(
-                ((leaf.room[0] + xo, leaf.room[1] + yo, 0), World.Colors.RGB)
-            )
-            if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
-                for zo in range(1, 5):
-                    world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), 1))
+def generate_world():
+    world.data = []
+    for leaf in head.get_leaves():
+        for xo in range(leaf.room[2]):
+            for yo in range(leaf.room[3]):
+                world.data.append(
+                    ((leaf.room[0] + xo, leaf.room[1] + yo, 0), World.Colors.RGB)
+                )
+                if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
+                    for zo in range(1, 5):
+                        world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), 1))
 
-# world.data = {data[:3]: data[3] for data in poss}
+    for start, end in corridors:
+        if start[0] == end[0]:
+            # xs are equal, so vertical bar, so vary horizontally
+            y = start[1]
+            while y != end[1]:
+                y += sign(end[1] - start[1])
+                for o in range(-2, 3):
+                    world.try_modifying(((start[0] + o, y, 0), 1))
+        elif start[1] == end[1]:
+            # ys are equal, so horizontal bar, so vary vertically
+            x = start[0]
+            while x != end[0]:
+                x += sign(end[0] - start[0])
+                for o in range(-2, 3):
+                    world.try_modifying(((x, start[1] + o, 0), 1))
 
-for start, end in corridors:
-    if start[0] == end[0]:
-        # xs are equal, so vertical bar, so vary horizontally
-        y = start[1]
-        while y != end[1]:
-            y += sign(end[1] - start[1])
-            for o in range(-2, 3):
-                world.try_modifying(((start[0] + o, y, 0), 1))
-    elif start[1] == end[1]:
-        # ys are equal, so horizontal bar, so vary vertically
-        x = start[0]
-        while x != end[0]:
-            x += sign(end[0] - start[0])
-            for o in range(-2, 3):
-                world.try_modifying(((x, start[1] + o, 0), 1))
+    # sort the list (use z-buffering)
+    world.data.sort(key=lambda x: x[0])
 
-# sort the list (use z-buffering)
-world.data.sort(key=lambda x: x[0])
+    # convert tuples to a dictionary
+    world.data = {k: v for k, v in world.data}
+    # stop loading sign
+    game.loading = False
 
-# convert tuples to a dictionary
-world.data = {k: v for k, v in world.data}
 
-bg = imgload("resources", "images", "bg.png")
-
-surf = pygame.Surface((40, 40), pygame.SRCALPHA)
-surf.fill(Colors.WHITE)
-write(surf, "center", "Bi", fonts[24], Colors.BLACK, *[s / 2 for s in surf.size])
+def count():
+    for i in range(10000000):
+        print(i)
 
 
 def main():
@@ -102,11 +104,12 @@ def main():
             (4, 2),
             other_lambda=lambda: workbench_ui.enable(),
         ),
-        Artifacts.TONIC_OF_LIFE().to_world((6, 6)),
+        Artifacts.TONIC_OF_LIFE.to_world((6, 6)),
     ]
 
     title1 = imgload("resources", "images", "title1.png", scale=5)
     title2 = imgload("resources", "images", "title2.png", scale=5)
+    loading = imgload("resources", "images", "loading.png")
     buzzing = True
     last_started = ticks()
     show_any_key = True
@@ -126,6 +129,9 @@ def main():
                     if game.state == States.MAIN_MENU:
                         if event.key == pygame.K_z:
                             game.set_state(States.PLAY)
+                            game.loading = True
+                            # Thread(target=generate_world, daemon=True).start()
+                            generate_world()
 
                     elif game.state == States.PLAY:
                         player.handle_keypress(event)
@@ -142,7 +148,6 @@ def main():
 
         match game.state:
             case States.MAIN_MENU:
-                bg_offset = v2_sub(v2_center(display.size), pygame.mouse.get_pos())
                 if random.randint(0, 100) > 94:
                     title = title2
                     if buzzing:
@@ -158,6 +163,7 @@ def main():
                 if ticks() - last_started >= 500:
                     show_any_key = not show_any_key
                     last_started = ticks()
+                text_pos = (display.width / 2, 6 * display.height / 7)
                 if show_any_key:
                     write(
                         display,
@@ -165,32 +171,33 @@ def main():
                         "press [z] to continue",
                         fonts[25],
                         Colors.WHITE,
-                        display.width / 2,
-                        6 * display.height / 7,
+                        *text_pos
                     )
+                
+                if game.loading:
+                    display.blit(loading, (text_pos[0] - loading.width / 2, text_pos[1] - loading.height / 2))
 
             case States.PLAY:
                 display.fill(Colors.GRAYS[30])
 
-                for pos, tile in world.data.items():
-                    x, y, z = pos
-                    # minimap
-                    mm_x = x * MMS
-                    mm_y = y * MMS
-                    # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
-                    # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
-                    if tile or True:
-                        blit_x, blit_y = cart_to_iso(x, y, z)
-                        # map
-                        blit_x -= game.scroll[0]
-                        blit_y -= game.scroll[1]
-                        display.blit(tiles[tile], (blit_x, blit_y))
-
-                # display.blit(bg, (0, bg_y))
-                # display.blit(bg, (0, bg_y - bg.height))
-                # bg_y += 1
-                # if bg_y >= display.height:
-                #     bg_y = 0
+                for xo in range(-20, 21):
+                    for yo in range(-20, 21):
+                        for zo in range(6):
+                            x, y, z = int(player.x) + xo, int(player.y) + yo, zo
+                            if (x, y, z) not in world.data:
+                                continue
+                            tile = world.data[(x, y, z)]
+                            # minimap
+                            mm_x = x * MMS
+                            mm_y = y * MMS
+                            # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
+                            # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
+                            if tile or True:
+                                blit_x, blit_y = cart_to_iso(x, y, z)
+                                # map
+                                blit_x -= game.scroll[0]
+                                blit_y -= game.scroll[1]
+                                display.blit(tiles[tile], (blit_x, blit_y))
 
                 for interactive in interactives:
                     interactive.update(player, interactives)
@@ -259,7 +266,7 @@ def main():
 
                 if workbench_ui.enabled:
                     workbench_ui.update()
-
+                
         pygame.display.update()
         dt = clock.tick(game.target_fps) / (1 / game.target_fps)
 
