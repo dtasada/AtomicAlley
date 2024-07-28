@@ -2,7 +2,7 @@ from .engine import *
 from .buttons import *
 from .writers import *
 from .artifacts import *
-from .player import *
+from .atoms import *
 
 from typing import List
 
@@ -21,7 +21,7 @@ class Interactive:
         tex_path,
         world_pos: v2,
         do: "Interactive | None" = None,
-        player_effect: Effect | None = None,
+        player_effect: List[Atom] | None = None,
         dialogues: List[Dialogue] | None = None,
         target_state: States | None = None,
         other_lambda: LambdaType | None = None,

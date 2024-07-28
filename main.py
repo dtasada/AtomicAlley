@@ -12,7 +12,6 @@ from src.objects import *
 from src.player import *
 from src.workbench import *
 from src.writers import *
-from src.tonics import *
 
 
 clock = pygame.time.Clock()

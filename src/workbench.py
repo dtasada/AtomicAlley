@@ -115,7 +115,7 @@ class WorkBenchUI:
             Atoms if type_ == ItemTypes.ATOM else Artifacts, inspect.isfunction
         )  # get all available atoms
         item = random.choice(all_items)[1]()
-        return __class__.GridItem(wpos, item, self)
+        return WorkBenchUI.GridItem(wpos, item, self)
 
     def update(self):
         self.set_vars()
