@@ -178,7 +178,7 @@ class Player:
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
                         prop_text = f"{prop.mag_type} {prop.type}"
-                        print(prop.mag_type, prop.magnitude, prop.type)
+                        print(dir(prop))
                         write(
                             display,
                             "topleft",
