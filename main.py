@@ -3,7 +3,7 @@
 import pygame
 import sys
 
-from pathlib import Path
+from threading import Thread
 
 from src.artifacts import *
 from src.buttons import *
@@ -13,11 +13,8 @@ from src.player import *
 from src.workbench import *
 from src.writers import *
 
-from threading import Thread
-
-
 clock = pygame.time.Clock()
-tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=4, frames=4)
+tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=4)
 tiles.extend(
     [
         imgload("resources", "images", "tiles", "bar.png"),
@@ -25,13 +22,16 @@ tiles.extend(
     ]
 )
 
+pbi = pygame.image.load(Path("resources", "images", "menu", "loading.png"))
 
 head = Node([0, 0, 200, 200])
 head.split(-1)
 head.draw_paths()
 
-# poss = []
+
 def generate_world():
+    game.loading = True
+    game.loading_progress = 0
     world.data = []
     for leaf in head.get_leaves():
         for xo in range(leaf.room[2]):
@@ -41,7 +41,12 @@ def generate_world():
                 )
                 if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
                     for zo in range(1, 5):
-                        world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), 1))
+                        world.data.append(
+                            (
+                                (leaf.room[0] + xo, leaf.room[1] + yo, zo),
+                                World.Colors.WHITE,
+                            )
+                        )
 
     for start, end in corridors:
         if start[0] == end[0]:
@@ -59,22 +64,24 @@ def generate_world():
                 for o in range(-2, 3):
                     world.try_modifying(((x, start[1] + o, 0), 1))
 
+        game.loading_progress += 1 / len(corridors)
+
+        game.progress_bar_image = game.progress_bar_images[
+            floor(len(game.progress_bar_images) * game.loading_progress)
+        ]
+
     # sort the list (use z-buffering)
     world.data.sort(key=lambda x: x[0])
 
     # convert tuples to a dictionary
     world.data = {k: v for k, v in world.data}
+
     # stop loading sign
     game.loading = False
-
-
-def count():
-    for i in range(10000000):
-        print(i)
+    game.set_state(States.PLAY)
 
 
 def main():
-    bg_y = 0
     buttons = {
         States.MAIN_MENU: [
             ButtonToggle((100, 100), 40, "toggle", 10),
@@ -93,32 +100,35 @@ def main():
     interactives = [
         Interactive(
             "Chest",
-            Path("resources", "images", "tiles", "chest.png"),
+            imgload("resources", "images", "tiles", "chest.png"),
             (1, 1),
             Interactive.DIALOGUE,
             dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
         ),
         Interactive(
             "Workbench",
-            Path("resources", "images", "tiles", "workbench.png"),
+            imgload("resources", "images", "tiles", "workbench.png"),
             (4, 2),
             other_lambda=lambda: workbench_ui.enable(),
         ),
         Artifacts.TONIC_OF_LIFE.to_world((6, 6)),
     ]
 
-    title1 = imgload("resources", "images", "title1.png", scale=5)
-    title2 = imgload("resources", "images", "title2.png", scale=5)
-    loading = imgload("resources", "images", "loading.png")
-    buzzing = True
+    title_images = [
+        imgload("resources", "images", "menu", "title0.png", scale=5),
+        imgload("resources", "images", "menu", "title1.png", scale=5),
+    ]
     last_started = ticks()
+    buzzing = True
     show_any_key = True
 
     game.set_state(States.MAIN_MENU)
     while game.running:
         for event in pygame.event.get():
             for state, array in buttons.items():
-                [button.process_event(event) for button in array if state == game.state]
+                for button in array:
+                    if state == game.state:
+                        button.process_event(event)
 
             match event.type:
                 case pygame.QUIT:
@@ -128,10 +138,8 @@ def main():
                 case pygame.KEYDOWN:
                     if game.state == States.MAIN_MENU:
                         if event.key == pygame.K_z:
-                            game.set_state(States.PLAY)
-                            game.loading = True
-                            # Thread(target=generate_world, daemon=True).start()
-                            generate_world()
+                            show_any_key = False
+                            Thread(target=generate_world, daemon=True).start()
 
                     elif game.state == States.PLAY:
                         player.handle_keypress(event)
@@ -149,19 +157,21 @@ def main():
         match game.state:
             case States.MAIN_MENU:
                 if random.randint(0, 100) > 94:
-                    title = title2
+                    title = title_images[1]
                     if buzzing:
                         buzzing = False
                         buzzing_channel.pause()
                 else:
-                    title = title1
+                    title = title_images[0]
                     if not buzzing:
                         buzzing_channel.unpause()
                 display.blit(title, (0, 0))
 
                 if ticks() - last_started >= 500:
-                    show_any_key = not show_any_key
-                    last_started = ticks()
+                    if not game.loading:
+                        show_any_key = not show_any_key
+                        last_started = ticks()
+
                 text_pos = (display.width / 2, 6 * display.height / 7)
                 if show_any_key:
                     write(
@@ -170,11 +180,17 @@ def main():
                         "press [z] to continue",
                         fonts[25],
                         Colors.WHITE,
-                        *text_pos
+                        *text_pos,
                     )
-                
+
                 if game.loading:
-                    display.blit(loading, (text_pos[0] - loading.width / 2, text_pos[1] - loading.height / 2))
+                    display.blit(
+                        game.progress_bar_image,
+                        (
+                            text_pos[0] - game.progress_bar_image.width / 2,
+                            text_pos[1] - game.progress_bar_image.height / 2,
+                        ),
+                    )
 
             case States.PLAY:
                 display.fill(Colors.GRAYS[30])
@@ -186,11 +202,8 @@ def main():
                             if (x, y, z) not in world.data:
                                 continue
                             tile = world.data[(x, y, z)]
+
                             # minimap
-                            mm_x = x * MMS
-                            mm_y = y * MMS
-                            # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
-                            # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
                             if tile or True:
                                 blit_x, blit_y = cart_to_iso(x, y, z)
                                 # map
@@ -263,11 +276,9 @@ def main():
                 if game.dialogue:
                     game.dialogue.update()
 
-                if workbench_ui.enabled:
-                    workbench_ui.update()
-                
+                workbench_ui.update()
+
         pygame.display.update()
-        dt = clock.tick(game.target_fps) / (1 / game.target_fps)
 
 
 if __name__ == "__main__":

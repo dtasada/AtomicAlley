@@ -5,7 +5,7 @@ from math import sqrt, floor
 from random import randint as rand
 from pathlib import Path
 from enum import Enum
-from typing import Any, Tuple
+from typing import Any, List, Tuple
 from pathlib import Path
 from random import randint as rand, uniform as randf, choice
 from pprint import pprint
@@ -200,21 +200,59 @@ def cart_to_mm(x, y, z):
     return (blit_x, blit_y)
 
 
-def imgload(*path_, columns=1, scale=R, row=0, rows=1, start_frame=0, frames=0):
+def imgload(
+    *path_, columns=1, rows=1, scale=R
+) -> pygame.Surface | List[pygame.Surface] | List[List[pygame.Surface]]:
     image = pygame.transform.scale_by(
         pygame.image.load(Path(*path_)).convert_alpha(), scale
     )
-    if frames > 0:
+
+    if columns * rows == 1:  # if contains only one image
+        return image
+    else:
+        frame_width = image.get_width() / columns
+        frame_height = image.get_height() / rows
+
         ret = []
-        width = image.get_width() / columns
-        height = image.get_height() / rows
-        for i in range(frames):
-            sub = image.subsurface(
-                start_frame * width + i * width, row * height, width, height
-            )
-            ret.append(sub)
+        if columns > 1 and rows == 1:  # if image is divided into columns
+            for i in range(columns):
+                sub = image.subsurface(
+                    i * frame_width,
+                    0,
+                    frame_width,
+                    frame_height,
+                )
+                ret.append(sub)
+
+        elif rows > 1 and columns == 1:  # if image is divided into rows
+            for i in range(rows):
+                sub = image.subsurface(
+                    0,
+                    i * frame_height,
+                    frame_width,
+                    frame_height,
+                )
+                ret.append(sub)
+
+        elif columns > 1 and rows > 1:  # if image is divided two-dimensinally
+            ret: List[List[pygame.Surface]] = []
+            for i in range(rows):
+                row = image.subsurface(
+                    0, i * frame_height, image.get_width(), frame_height
+                )
+                row_sheet = []
+                for j in range(columns):
+                    frame = row.subsurface(
+                        j * frame_width,
+                        0,
+                        frame_width,
+                        frame_height,
+                    )
+                    row_sheet.append(frame)
+
+                ret.append(row_sheet)
+
         return ret
-    return image
 
 
 class Game:
@@ -226,7 +264,20 @@ class Game:
         self.scroll = [0, 0]
         self.dialogue = None
         self.focus: Any = None
+
         self.loading = False
+        self.loading_progress = 0.0
+        # self.progress_bar_images = [
+        #     pygame.transform.scale(
+        #         pbi.subsurface(0, pbi.height * i / 11, pbi.width, pbi.height / 11),
+        #         (512, 48),
+        #     )
+        #     for i in range(0, 11)
+        # ]
+        self.progress_bar_images = imgload(
+            "resources", "images", "menu", "loading.png", rows=11, scale=2
+        )
+        self.progress_bar_image = self.progress_bar_images[0]
 
     def set_state(self, target_state):
         global buzzing_channel
@@ -234,7 +285,7 @@ class Game:
         if target_state == States.MAIN_MENU:
             buzzing_channel.set_volume(0.7)
             buzzing_channel.play(light_buzz, -1)
- 
+
             pygame.mixer.music.unload()
             pygame.mixer.music.load(Music.MAIN_MENU)
             pygame.mixer_music.play(-1)

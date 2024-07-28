@@ -10,18 +10,19 @@ class Player:
         self.blit_x = self.blit_y = 0
         self.dpos = (self.blit_x, self.blit_y)
         self.images = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
-                "resources",
-                "images",
-                "player",
-                "player_sheet.png",
-                columns=7,
-                row=i,
-                rows=5,
-                frames=1,
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
+            for i, row in enumerate(
+                imgload(
+                    "resources",
+                    "images",
+                    "player",
+                    "player_sheet.png",
+                    rows=5,
+                    columns=7,
+                )
             )
-            for i in range(5)
         }
+
         self.images["left"] = [
             pygame.transform.flip(i, True, False) for i in self.images["right"]
         ]
@@ -33,18 +34,17 @@ class Player:
         ]
 
         self.run_frames = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: imgload(
-                "resources",
-                "images",
-                "player",
-                "player_sheet.png",
-                columns=7,
-                row=i,
-                rows=5,
-                start_frame=1,
-                frames=6,
+            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
+            for i, row in enumerate(
+                imgload(
+                    "resources",
+                    "images",
+                    "player",
+                    "player_sheet.png",
+                    rows=5,
+                    columns=7,
+                )
             )
-            for i in range(5)
         }
         self.run_frames["left"] = [
             pygame.transform.flip(i, True, False) for i in self.run_frames["right"]
@@ -71,7 +71,7 @@ class Player:
 
         # self.hotbar = [Tonic("Ar"), Tonic("Si")]
         self.hotbar = [
-            Artifacts.ARSENIC.to_hotbar(),
+            Artifacts.ARSENIC_FIZZ.to_hotbar(),
         ]
         # wat is dit voor rust ass looking code
         # dit is python
@@ -111,18 +111,18 @@ class Player:
         if event.key == pygame.K_SPACE:
             if ticks() - self.last_dash >= self.dash_time:
                 self.dash()
-        
+
         elif event.key == pygame.K_i:
             self.show_hotbar = not self.show_hotbar
-        
+
         elif event.key == pygame.K_o:
             self.show_abilities = not self.show_abilities
-        
+
         elif event.key == pygame.K_LEFT:
             self.selected -= 1
             if self.selected < 0:
                 self.selected = self.hotbar_length - 1
-        
+
         elif event.key == pygame.K_RIGHT:
             self.selected += 1
             if self.selected > self.hotbar_length - 1:

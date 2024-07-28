@@ -1,8 +1,6 @@
 from __future__ import absolute_import, annotations
-from copy import deepcopy
 from enum import Enum
 from typing import List
-from pathlib import Path
 
 from .engine import *
 from .objects import *
@@ -19,7 +17,9 @@ class AtomTypes(Enum):
     OGANESSON = 6
 
 
-atom_sprs = imgload("resources", "images", "atoms", "atoms.png", columns=7, frames=7)
+atom_images: List[pygame.Surface] = imgload(
+    "resources", "images", "atoms", "atoms.png", columns=7
+)
 
 
 class Atom:
@@ -27,12 +27,12 @@ class Atom:
 
     def __init__(
         self,
-        name: str,  #
+        type_: AtomTypes,
         properties: List[Property],
         color: pygame.Color,
     ):
-        self.name = name.capitalize()
-        self.tex_path = Path("resources", "images", "atoms", "atoms.png")
+        self.name = type_.name.capitalize()
+        self.image = atom_images[type_.value]
         self.color = color
         self.properties = properties
 
@@ -40,71 +40,64 @@ class Atom:
 class Atoms:
     "All different atom implementations"
     ARSENIC = Atom(
-        "arsenic",
+        AtomTypes.ARSENIC,
         [
             Property(Properties.DAMAGE, MagType.REL_COEF, +0.2),
             Property(Properties.MAX_HEALTH, MagType.REL_COEF, -0.2),
             Property(Properties.IGNITE_CHANCE, MagType.SET_ABS, 0.2),
         ],
-        (163, 0, 0)
+        (163, 0, 0),
     )
 
     BISMUTH = Atom(
-        "bismuth",
+        AtomTypes.BISMUTH,
         [
             Property(Properties.MUT_ALL_STATS, MagType.REL_COEF, +0.1),
             Property(Properties.TRADE_FOR_CHOICES, MagType.SET_ABS, +2),
         ],
-        (227, 171, 188)
+        (227, 171, 188),
     )
 
     KRYPTON = Atom(
-        "krypton",
+        AtomTypes.KRYPTON,
         [
             Property(Properties.DASH_COOLDOWN, MagType.REL_COEF, -0.5),
             Property(Properties.DASH_RANGE, MagType.REL_COEF, +1.0),
             # another one w/ a shield that kicks in at random times?
         ],
-        (0, 0, 80)
+        (0, 0, 80),
     )
 
     OGANESSON = Atom(
-       "oganesson",
+        AtomTypes.OGANESSON,
         [Property(Properties.ULTIMATE, MagType.SET_ABS, 0.0)],
-        (10, 10, 10)
+        (10, 10, 10),
         # TODO oganesson clor
     )
 
     OSMIUM = Atom(
-        "osmium",
+        AtomTypes.OSMIUM,
         [Property(Properties.NONE, MagType.SET_ABS, 0.0)],
         (50, 50, 50),
     )
 
     SILICON = Atom(
-        "silicon",
+        AtomTypes.SILICON,
         [
             Property(Properties.HEALTH_REGEN, MagType.REL_COEF, +0.5),
             Property(Properties.MOVEMENT_SPEED, MagType.REL_COEF, -0.2),
             Property(Properties.SIPHON, MagType.SET_ABS, 0.05),
         ],
-        (254, 251, 234)
+        (254, 251, 234),
     )
 
-
-    """
-    ik doe de trial of silence 30 dagen (monk thing you wouldnt undersatnd)
-    i shaved my head
-    but 1 exception i dont have to be a virgin
-    """
-
     VANADIUM = Atom(
-        "vanadium",
+        AtomTypes.VANADIUM,
         [
             Property(Properties.CRIT_CHANCE, MagType.REL_COEF, +0.5),
             Property(Properties.HOTBAR_SLOTS, MagType.REL_NUM, -1),
             Property(Properties.DODGE_CHANCE, MagType.SET_ABS, 0.1),
             Property(Properties.MOVEMENT_SPEED, MagType.REL_COEF, -0.2),
         ],
-        (0, 200, 0)
+        (0, 200, 0),
     )

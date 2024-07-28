@@ -1,5 +1,3 @@
-import inspect
-
 from .engine import *
 from .artifacts import *
 from .atoms import *
@@ -15,12 +13,12 @@ class WorkBenchUI:
     class GridItem:
         def __init__(self, wpos, origin: Artifact | Atom, wb: super):
             self.origin = origin
-            self.tex = pygame.transform.scale(
-                pygame.image.load(self.origin.tex_path).convert_alpha(),
+            self.image = pygame.transform.scale(
+                self.origin.image,
                 [wb.cell_size * 1 / 2] * 2,
             )
             self.name = self.origin.name.capitalize()
-            # self.rect = self.tex.get_rect()
+            self.rect = self.image.get_rect()
             self.wpos = wpos
 
         def update(self, wb: "WorkBenchUI"):
@@ -31,10 +29,11 @@ class WorkBenchUI:
                 + wb.cell_size / 2
                 + wb.yoffset,
             )
-            display.blit(self.tex, self.rect)
+            display.blit(self.image, self.rect)
 
     def __init__(self):
         self.enabled = False
+        self.master_rect = None
 
         self.outer_margin = (202, 128)
         self.inner_margin = 32
@@ -57,11 +56,16 @@ class WorkBenchUI:
         self.enabled = False
 
     def set_vars(self):
-        if self.yoffset > 0:
-            self.yoffset *= 0.6
-        elif self.yoffset < 0:
-            self.yoffset = 0
-
+        if self.enabled:
+            if self.yoffset > 0:
+                self.yoffset *= 0.6
+            elif self.yoffset < 0:
+                self.yoffset = 0
+        elif self.master_rect:
+            if self.yoffset < self.master_rect.bottom:
+                self.yoffset /= 0.6
+            elif self.yoffset > 0:
+                self.yoffset = self.master_rect.bottom
         self.master_rect = pygame.Rect(
             self.outer_margin[0],
             self.outer_margin[1] + self.yoffset,
@@ -94,6 +98,12 @@ class WorkBenchUI:
             ),
         )
 
+        if not self.enabled:
+            if self.yoffset < self.master_rect.bottom:
+                self.yoffset /= 0.6
+            elif self.yoffset > 0:
+                self.yoffset = self.master_rect.bottom
+
     def gen_grid(self) -> None:
         "Generates the workbench inventory (in-place)"
         for y, row in enumerate(self.items):
@@ -118,6 +128,9 @@ class WorkBenchUI:
 
     def update(self):
         self.set_vars()
+
+        if not self.enabled and self.yoffset == self.master_rect.bottom:
+            return
 
         pygame.draw.rect(
             display, Colors.GRAYS[40], self.master_rect, border_radius=BORDER_RADIUS
