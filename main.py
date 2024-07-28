@@ -157,7 +157,6 @@ def main():
                     title = title1
                     if not buzzing:
                         buzzing_channel.unpause()
-
                 display.blit(title, (0, 0))
 
                 if ticks() - last_started >= 500:
