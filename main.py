@@ -67,8 +67,8 @@ def generate_world():
         game.loading_progress += 1 / len(corridors)
 
         game.progress_bar_image = game.progress_bar_images[
-            floor(len(game.progress_bar_images) * game.loading_progress)
-        ]
+            min(floor(len(game.progress_bar_images) * game.loading_progress), 10)
+        ]  # using min bc sometimes index gets to 11?
 
     # sort the list (use z-buffering)
     world.data.sort(key=lambda x: x[0])

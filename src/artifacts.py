@@ -3,11 +3,8 @@ from .engine import *
 from .objects import *
 from .atoms import *
 
-from copy import deepcopy
-
 from enum import Enum
 from typing import List
-from pathlib import Path
 
 
 class ArtifactInteractive(Interactive):

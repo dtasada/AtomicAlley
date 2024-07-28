@@ -275,7 +275,7 @@ class Game:
         #     for i in range(0, 11)
         # ]
         self.progress_bar_images = imgload(
-            "resources", "images", "menu", "loading.png", rows=11, scale=2
+            "resources", "images", "menu", "loading.png", rows=11, scale=3
         )
         self.progress_bar_image = self.progress_bar_images[0]
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .engine import *
 from .artifacts import *
 from .atoms import *
@@ -11,25 +13,42 @@ class ItemTypes(Enum):
 
 class WorkBenchUI:
     class GridItem:
-        def __init__(self, wpos, origin: Artifact | Atom, wb: super):
+        def __init__(self, wpos, origin: Artifact | Atom, wb: WorkBenchUI):
             self.origin = origin
+            self.wb = wb
+
+            self.wpos = wpos
+            self.name = self.origin.name.capitalize()
+
             self.image = pygame.transform.scale(
                 self.origin.image,
                 [wb.cell_size * 1 / 2] * 2,
             )
-            self.name = self.origin.name.capitalize()
             self.rect = self.image.get_rect()
-            self.wpos = wpos
+            self.cell_topleft = None
+            self.text_image = fonts[FontSize.SMALL].render(
+                self.name, ANTI_ALIASING, Colors.WHITE
+            )
+            self.text_rect = self.text_image.get_rect()
 
-        def update(self, wb: "WorkBenchUI"):
+        def update(self):
+            self.cell_topleft = (
+                self.wb.grid_start[0] + self.wb.cell_size * self.wpos[0],
+                self.wb.grid_start[1]
+                + self.wb.cell_size * self.wpos[1]
+                + self.wb.yoffset,
+            )
             self.rect.center = (
-                wb.grid_start[0] + wb.cell_size * self.wpos[0] + wb.cell_size / 2,
-                wb.grid_start[1]
-                + wb.cell_size * self.wpos[1]
-                + wb.cell_size / 2
-                + wb.yoffset,
+                self.cell_topleft[0] + self.wb.cell_size / 2,
+                self.cell_topleft[1] + self.wb.cell_size / 2,
             )
             display.blit(self.image, self.rect)
+
+        def draw_text(self):
+            mp = pygame.mouse.get_pos()
+            if pygame.Rect(self.cell_topleft, [self.wb.cell_size] * 2).collidepoint(mp):
+                self.text_rect.topleft = mp
+                display.blit(self.text_image, self.text_rect)
 
     def __init__(self):
         self.enabled = False
@@ -56,16 +75,15 @@ class WorkBenchUI:
         self.enabled = False
 
     def set_vars(self):
-        if self.enabled:
-            if self.yoffset > 0:
-                self.yoffset *= 0.6
-            elif self.yoffset < 0:
-                self.yoffset = 0
-        elif self.master_rect:
-            if self.yoffset < self.master_rect.bottom:
-                self.yoffset /= 0.6
-            elif self.yoffset > 0:
-                self.yoffset = self.master_rect.bottom
+        if self.master_rect:
+            if self.enabled:
+                self.yoffset = 0 if self.yoffset < 0 else self.yoffset * 0.6
+            else:
+                if self.yoffset < self.master_rect.bottom:
+                    if self.yoffset == 0:
+                        self.yoffset = 10
+                    self.yoffset /= 0.6
+
         self.master_rect = pygame.Rect(
             self.outer_margin[0],
             self.outer_margin[1] + self.yoffset,
@@ -97,12 +115,6 @@ class WorkBenchUI:
                 (self.grid_end[0], self.grid_end[1] + self.yoffset),
             ),
         )
-
-        if not self.enabled:
-            if self.yoffset < self.master_rect.bottom:
-                self.yoffset /= 0.6
-            elif self.yoffset > 0:
-                self.yoffset = self.master_rect.bottom
 
     def gen_grid(self) -> None:
         "Generates the workbench inventory (in-place)"
@@ -152,7 +164,12 @@ class WorkBenchUI:
                 )
 
                 if item:
-                    item.update(self)
+                    item.update()
+
+        for _, row in enumerate(self.items):
+            for _, item in enumerate(row):
+                if item:
+                    item.draw_text()
 
         # Lines at right and bottom of grid
         for line in self.closing_lines:

@@ -8,6 +8,7 @@ from .properties import *
 
 
 class AtomTypes(Enum):
+    # ARGON = 0
     ARSENIC = 0
     SILICON = 1
     OSMIUM = 2
@@ -39,6 +40,12 @@ class Atom:
 
 class Atoms:
     "All different atom implementations"
+    # ARGON = Atom(
+    #     AtomTypes.OSMIUM,
+    #     [Property(Properties.NONE, MagType.SET_ABS, 0.0)],
+    #     (50, 50, 50),
+    # )
+
     ARSENIC = Atom(
         AtomTypes.ARSENIC,
         [
