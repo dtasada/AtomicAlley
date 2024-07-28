@@ -44,7 +44,7 @@ class Atoms:
         [
             Property(Properties.DAMAGE, MagType.REL_COEF, +0.2),
             Property(Properties.MAX_HEALTH, MagType.REL_COEF, -0.2),
-            Property(Properties.IGNITE_CHANCE, MagType.SET_ABS, 0.2),
+            Property(Properties.IGNITE_CHANCE, MagType.REL_COEF, +0.05),
         ],
         (163, 0, 0),
     )

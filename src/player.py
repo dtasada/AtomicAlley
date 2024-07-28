@@ -69,12 +69,10 @@ class Player:
         self.last_dash = ticks()
         self.dash_time = 1320
 
-        # self.hotbar = [Tonic("Ar"), Tonic("Si")]
         self.hotbar = [
             Artifacts.ARSENIC_FIZZ.to_hotbar(),
+            Artifacts.BISMUTH.to_hotbar(),
         ]
-        # wat is dit voor rust ass looking code
-        # dit is python
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
         self.selected_image = imgload("resources", "images", "selected.png")
@@ -113,10 +111,12 @@ class Player:
                 self.dash()
 
         elif event.key == pygame.K_i:
-            self.show_hotbar = not self.show_hotbar
+            if not self.show_abilities:
+                self.show_hotbar = not self.show_hotbar
 
         elif event.key == pygame.K_o:
-            self.show_abilities = not self.show_abilities
+            if not self.show_hotbar:
+                self.show_abilities = not self.show_abilities
 
         elif event.key == pygame.K_LEFT:
             self.selected -= 1
@@ -177,14 +177,31 @@ class Player:
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
-                        prop_text = f"{prop.mag_type} {prop.type}"
-                        print(dir(prop))
+                        if prop.mag_type == MagType.REL_COEF:
+                            mag = (
+                                str(
+                                    (prop.magnitude * 100)
+                                    if prop.magnitude < 0
+                                    else ("+" + str(prop.magnitude * 100))
+                                )
+                                + "%"
+                            )
+                            if prop.type == Properties.MUT_ALL_STATS:
+                                type_ = "on all stats"
+                            else:
+                                type_ = prop.type.name.lower().replace("_", " ")
+                            prop_text = f"{mag} {type_}"
+                        elif prop.mag_type == MagType.SET_ABS:
+                            if prop.type == Properties.TRADE_FOR_CHOICES:
+                                prop_text = f"Can be traded for {prop.magnitude} random elements"
+                        else:
+                            prop_text = "asd"
                         write(
                             display,
                             "topleft",
                             prop_text,
                             fonts[24],
-                            Colors.GREEN,
+                            Colors.GREEN if prop.magnitude > 0 else Colors.RED,
                             xor,
                             yor + y,
                         )
@@ -245,7 +262,7 @@ class Player:
         #
         self.blit_x, self.blit_y = cart_to_iso(self.x, self.y, 0)
         mm_x, mm_y = cart_to_mm(self.x, self.y, 0)
-        # pygame.gfxdraw.filled_circle(display, int(mm_x), int(mm_y), 4, Colors.RED)
+        pygame.draw.rect(display, Colors.RED, (self.x, self.y, 5, 5))
         self.blit_x += S / 2
         self.blit_y += S / 4
         #

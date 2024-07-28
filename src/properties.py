@@ -22,7 +22,7 @@ class Properties(Enum):
     MAX_HEALTH = 10
     MOVEMENT_SPEED = 11
     MUT_ALL_STATS = 12
-    NONE = 13  # Osmium is ass and it doesn't do anything. It's the unlucky atom
+    NONE = 13
     SHIELD = 14
     SIPHON = 15
     TRADE_FOR_CHOICES = 16

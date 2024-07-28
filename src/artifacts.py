@@ -10,11 +10,6 @@ from typing import List
 from pathlib import Path
 
 
-"""
-nee maar als je 235 classes nodig hebt voor een potion dan gaat er iets mis
-"""
-
-
 class ArtifactInteractive(Interactive):
     "Artifact class for floor drops"
 
@@ -138,6 +133,13 @@ class Artifacts:
         "Tonic of Life",
         reagents=[Atoms.ARSENIC],
         color=Colors.GREEN,
+    )
+
+    BISMUTH = Artifact(
+        ArtifactType.TONIC,
+        atom_images[6],
+        "bismuth",
+        reagents=[Atoms.BISMUTH],
     )
 
     TONIC_OF_LIFE = Artifact(
