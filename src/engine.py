@@ -264,7 +264,7 @@ class Game:
         self.scroll = [0, 0]
         self.dialogue = None
         self.focus: Any = None
-        self.interactives = []
+        self.late_events = []
 
         self.loading = False
         self.rect_scale = 20
@@ -346,12 +346,8 @@ class World:
 
     def __init__(self):
         self.data = {}
-        # keys = [x + (0,) for x in itertools.product(range(20), range(20))]
-        # left_wall = [(0, y, z) for y in range(20) for z in range(10)]
-        # right_wall = [(x, 0, z) for x in range(20) for z in range(10)]
-        # map_ = keys + left_wall + right_wall
-        map_ = []
-        self.data[(2, 2, 0)] = 1
+        self.interactives = {}
+        self.late_interactives = []
 
     def try_modifying(self, data, check_higher=False):
         targ_pos, value = data

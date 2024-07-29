@@ -4,8 +4,6 @@ from .artifacts import *
 
 class Player:
     def __init__(self):
-        # self.x = 0
-        # self.y = 0
         self.mmrect = pygame.FRect((0, 0, 20, 20))
         self.wpos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
@@ -65,11 +63,11 @@ class Player:
         self.dashing = False
         self.last_dash = ticks()
         self.dash_time = 1320
-
         self.hotbar = [
             Artifacts.ARSENIC_FIZZ.to_hotbar(),
             Artifacts.BISMUTH.to_hotbar(),
         ]
+        self.inventory = [None for _ in range(16)]
         self.show_hotbar = False
         self.hotbar_image = imgload("resources", "images", "hotbar.png")
         self.inventory_image = imgload("resources", "images", "inventory.png")
@@ -77,8 +75,8 @@ class Player:
         self.unavailable_image = imgload("resources", "images", "unavailable.png")
         self.selected = 0
         self.hotbar_length = 9
-        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 120))
-        self.inventory_rect = self.inventory_image.get_rect(topleft=(display.width + 10, 300))
+        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 10))
+        self.inventory_rect = self.inventory_image.get_rect(topleft=(display.width + 10, display.height / 2 + 60))
 
         # abilities
         self.show_abilities = False
@@ -112,7 +110,17 @@ class Player:
 
         self.dpos = (self.blit_x, self.blit_y)
         self.wpos = (self.x, self.y)
-
+    
+    def new_inventory_item(self, item):
+        if self.inventory.count(None) == 0:
+            return
+        inv_item = item.origin.to_inventory()
+        item.kill()
+        for i, v in enumerate(self.inventory):
+            if v is None:
+                self.inventory[i] = inv_item
+                break
+        
     def scroll(self):
         game.fake_scroll[0] += (
             self.rect.centerx - game.fake_scroll[0] - display.width // 2
@@ -123,29 +131,50 @@ class Player:
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
 
-    def handle_keypress(self, event):
-        if event.key == pygame.K_SPACE:
-            if ticks() - self.last_dash >= self.dash_time or True:
-                self.dash()
+    def process_event(self, workbench_ui, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                if ticks() - self.last_dash >= self.dash_time or True:
+                    self.dash()
 
-        elif event.key == pygame.K_i:
-            if not self.show_abilities:
-                self.show_hotbar = not self.show_hotbar
+            elif event.key == pygame.K_i:
+                if not self.show_abilities:
+                    self.show_hotbar = not self.show_hotbar
 
-        elif event.key == pygame.K_o:
-            if not self.show_hotbar:
-                self.show_abilities = not self.show_abilities
+            elif event.key == pygame.K_o:
+                if not self.show_hotbar:
+                    self.show_abilities = not self.show_abilities
 
-        elif event.key == pygame.K_LEFT:
-            self.selected -= 1
-            if self.selected < 0:
-                self.selected = self.hotbar_length - 1
+            elif event.key == pygame.K_LEFT:
+                self.selected -= 1
+                if self.selected < 0:
+                    self.selected = self.hotbar_length - 1
 
-        elif event.key == pygame.K_RIGHT:
-            self.selected += 1
-            if self.selected > self.hotbar_length - 1:
-                self.selected = 0
-
+            elif event.key == pygame.K_RIGHT:
+                self.selected += 1
+                if self.selected > self.hotbar_length - 1:
+                    self.selected = 0
+            
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if workbench_ui.enabled:
+                for i, v in enumerate(self.inventory):
+                    if v is not None:
+                        if v.artifact_rect.collidepoint(event.pos):
+                            self.inventory[i] = None
+                            workbench_ui.glass = v
+                # concoct final
+                if workbench_ui.glass is not None:
+                    if workbench_ui.concoct_rect.collidepoint(event.pos):
+                        reagents = [getattr(Atoms, sel.name.upper()) for sel in workbench_ui.get_selected]
+                        pprint([x.name for x in workbench_ui.get_selected])
+                        tonic = Artifact(
+                            ArtifactType.TONIC,
+                            atom_images[6],
+                            "asd",
+                            reagents=reagents,
+                        ).to_hotbar()
+                        self.hotbar.append(tonic)
+                        
     def keys(self):
         keys = pygame.key.get_pressed()
         m = 0.08
@@ -183,19 +212,22 @@ class Player:
             if it is not None:
                 self.it = it
 
+    def render_hotbar(self):
         # hotbar
         m = 0.2
         if not self.show_hotbar:
             d = (display.width + 10 - self.hotbar_rect.left) * m
             bsd = (display.width + 10 - self.black_stripe_rect.left) * m
+            ind = (display.width + 120 - self.inventory_rect.centerx) * m
         else:
             d = (display.width / 2 - self.hotbar_rect.centerx) * m
             bsd = (0 - self.black_stripe_rect.left) * m
+            ind = (display.width / 2 + 254 - self.inventory_rect.centerx) * m
         self.hotbar_rect.centerx += d
-        self.inventory_rect.centerx += d
+        self.inventory_rect.centerx += ind
         self.black_stripe_rect.left += bsd
 
-        display.blit(self.black_stripe, self.black_stripe_rect)
+        # display.blit(self.black_stripe, self.black_stripe_rect)
         display.blit(self.hotbar_image, self.hotbar_rect)
         display.blit(self.inventory_image, self.inventory_rect)
         for x, artifact in enumerate(self.hotbar):
@@ -241,6 +273,28 @@ class Player:
                             yor + y,
                         )
                         y += 34
+            
+        # render inventory
+        yo = 0
+        xo = 0
+        for artifact in self.inventory:
+            if artifact is None:
+                continue
+            artifact_rect = pygame.Rect(
+                self.inventory_rect.x + R + 19 * R * xo,
+                self.inventory_rect.y + R + 19 * R * yo,
+                18 * R,
+                18 * R
+            )
+            xo += 1
+            if xo % 4 == 0:
+                yo += 1
+                xo = 0
+            img = pygame.transform.scale(artifact.image, artifact_rect.size)
+            display.blit(img, artifact_rect)
+            artifact.artifact_rect = artifact_rect
+            if artifact_rect.collidepoint(pygame.mouse.get_pos()):
+                write(display, "topleft", artifact.name.replace("_", " "), fonts[20], Colors.WHITE, *pygame.mouse.get_pos())
 
         # abilities
         if self.show_abilities:
@@ -251,7 +305,7 @@ class Player:
             self.black_surf.set_alpha(
                 self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2
             )
-
+        
     def get_collisions(self):
         return
 

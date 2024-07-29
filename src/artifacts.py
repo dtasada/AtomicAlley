@@ -22,14 +22,15 @@ class ArtifactInteractive(Interactive):
                 else origin.properties
             ),
         )
+        self.origin = origin
         self.name = origin.name
         self.image = pygame.transform.scale(origin.image, (SR / 8, SR / 8))
         self.wpos = world_pos
         self.rect = self.image.get_rect()
         self.reagents = origin.reagents
-
-    def update(self, player, interactives):
-        super().update(player, interactives)
+    
+    def kill(self):
+        del world.interactives[self.wpos]
 
 
 class ArtifactType(Enum):
@@ -37,7 +38,7 @@ class ArtifactType(Enum):
     TONIC = 0
     KERNEL = 1
     DOCUMENT = 2
-    EM_FLASK = 3
+    ERLENMEYER_FLASK = 3
 
 
 class Artifact:
@@ -98,13 +99,29 @@ class Artifact:
     def to_hotbar(self):
         return ArtifactHotbar(self)
 
+    def to_inventory(self):
+        return ArtifactInventory(self)
+
+
+class ArtifactInventory(Artifact):
+    def __init__(self, origin: Artifact) -> None:
+        super().__init__(
+            origin.type,
+            origin.image,
+            origin.name,
+            origin.reagents,
+            origin.properties,
+            origin.color,
+        )
+        self.origin = origin
+
 
 class ArtifactHotbar(Artifact):
     def __init__(self, origin: Artifact) -> None:
         super().__init__(
             origin.type,
-            origin.name,
             origin.image,
+            origin.name,
             origin.reagents,
             origin.properties,
             origin.color,
@@ -112,11 +129,15 @@ class ArtifactHotbar(Artifact):
         self.origin = origin
         self.image = pygame.Surface((38 * R, 38 * R))
         self.image.fill(self.color)
+        if len(self.reagents) == 1:
+            font_size = 24
+        else:
+            font_size = 24
         write(
             self.image,
             "center",
-            "".join([r.name for r in origin.reagents]) if self.reagents else self.name,
-            fonts[24],
+            "\n".join([r.name for r in origin.reagents]) if self.reagents else self.name,
+            fonts[font_size],
             self.text_color,
             *[s / 2 for s in self.image.size],
         )
@@ -125,10 +146,10 @@ class ArtifactHotbar(Artifact):
 class Artifacts:
     "All different artifact implementations"
 
-    EM_FLASK = Artifact(
+    ERLENMEYER_FLASK = Artifact(
         ArtifactType,
         imgload("resources", "images", "erlenmeyer.png"),
-        "erlenmeyer",
+        "erlenmeyer_flask",
         properties=[Properties.NONE],
         color=(200, 200, 200)
     )

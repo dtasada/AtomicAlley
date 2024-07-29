@@ -48,6 +48,7 @@ def generate_world():
     for leaf in head.get_leaves():
         for xo in range(leaf.room[2]):
             for yo in range(leaf.room[3]):
+                x, y = leaf.room[0] + xo, leaf.room[1] + yo
                 if leaf.room_type == RoomType.BAR:
                     ground_tile = ((xo + yo) % 2 == 0) * 4
                 elif leaf.room_type == RoomType.NORMAL:
@@ -58,12 +59,17 @@ def generate_world():
                             "Workbench",
                             imgload("resources", "images", "tiles", "workbench.png"),
                             (leaf.room[0] + leaf.chest_offset[0], leaf.room[1] + leaf.chest_offset[1]),
-                            other_lambda=lambda: workbench_ui.enable(),
+                            other_lambda=lambda x: workbench_ui.enable(),
                         )
-                        game.interactives.append(interactive)
+                        world.interactives[(x, y)] = interactive
                 world.data.append(
-                    ((leaf.room[0] + xo, leaf.room[1] + yo, 0), ground_tile)
+                    ((x, y, 0), ground_tile)
                 )
+                # chance to drop flask
+                if rand(1, 300) == 1:
+                    interactive = Artifacts.ERLENMEYER_FLASK.to_world((x, y))
+                    interactive.other_lambda = player.new_inventory_item
+                    world.interactives[(x, y)] = interactive
                 # walls
                 if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
                     for zo in range(game.wall_height):
@@ -120,7 +126,7 @@ def generate_world():
     game.loading_progress = 0
 
 
-def main():
+def main(debug=False):
     buttons = {
         States.MAIN_MENU: [
             ButtonToggle((100, 100), 40, "toggle", 10),
@@ -136,7 +142,7 @@ def main():
         ],
     }
 
-    # game.interactives = [
+    # world.interactives = [
     #     Interactive(
     #         "Chest",
     #         imgload("resources", "images", "tiles", "chest.png"),
@@ -152,7 +158,6 @@ def main():
     #     ),
     #     Artifacts.TONIC_OF_LIFE.to_world((6, 6)),
     # ]
-    game.interactives = []
 
     title_images = [
         imgload("resources", "images", "menu", "title0.png", scale=5),
@@ -164,17 +169,22 @@ def main():
 
     game.set_state(States.MAIN_MENU)
 
+    if not debug or True:
+        game.dialogue = Dialogue("Press <i> to show hotbar & inventory\nPress <o> to show abilities", "Game")
+
     while game.running:
+        game.late_events = []
         for event in pygame.event.get():
             for state, array in buttons.items():
                 for button in array:
                     if state == game.state:
                         button.process_event(event)
             
-            # if workbench_ui.enabled:
-            #     for item in workbench_ui.items:
-            #         if item is not None:
-            #             item.process_event(event)
+            if workbench_ui.enabled:
+                for row in workbench_ui.items:
+                    for item in row:
+                        if item is not None:
+                            item.process_event(event)
 
             match event.type:
                 case pygame.QUIT:
@@ -186,9 +196,6 @@ def main():
                         if event.key == pygame.K_z:
                             show_any_key = False
                             Thread(target=generate_world, daemon=True).start()
-
-                    elif game.state == States.PLAY:
-                        player.handle_keypress(event)
 
                     if event.key == pygame.K_ESCAPE:
                         match game.state:
@@ -202,6 +209,9 @@ def main():
                     
                     elif event.key == pygame.K_f:
                         world.data[(10, 10, 1)] = 2
+                
+            if game.state == States.PLAY:
+                player.process_event(workbench_ui, event)
 
         match game.state:
             case States.MAIN_MENU:
@@ -245,8 +255,10 @@ def main():
                 display.fill(Colors.GRAYS[30])
 
                 player.check_rects = []
+                world.late_interactives = []
                 for xo in range(-20, 21):
                     for yo in range(-20, 21):
+                        # UPDATE TILES
                         for zo in range(6):
                             x, y, z = int(player.x) + xo, int(player.y) + yo, zo
                             if (x, y, z) not in world.data:
@@ -255,9 +267,6 @@ def main():
                             if z > 0:
                                 rect = pygame.Rect(x * game.rect_scale, y * game.rect_scale, 20, 20)
                                 player.check_rects.append(rect)
-                            # minimap
-                            mm_x = x * MMS
-                            mm_y = y * MMS
                             # pygame.draw.rect(display, [255 - z / 10 * 255] * 3, (mm_x, mm_y, MMS, MMS))
                             # pygame.draw.rect(display, Colors.BLACK, (mm_x, mm_y, MMS, MMS), 1)
                             if tile != "i":
@@ -266,9 +275,20 @@ def main():
                                 blit_x -= game.scroll[0]
                                 blit_y -= game.scroll[1]
                                 display.blit(tiles[tile], (blit_x, blit_y))
+                        # UPDATE INTERACTIVES
+                        x, y = int(player.x) + xo, int(player.y) + yo
+                        if (x, y) not in world.interactives:
+                            continue
+                        interactive = world.interactives[(x, y)]
+                        if abs(x - player.x) <= 2 and abs(y - player.y) <= 2 and not world.late_interactives:
+                            interactive.focused = True
+                            world.late_interactives.append(interactive)
+                        else:
+                            interactive.focused = False
+                            interactive.update()
 
-                for interactive in game.interactives:
-                    interactive.update(player, game.interactives)
+                for interactive in world.late_interactives:
+                    interactive.update()
 
                 for shadow in all_shadows:
                     shadow.update()
@@ -283,6 +303,10 @@ def main():
 
                 player.update()
                 player.scroll()
+                workbench_ui.update()
+                player.render_hotbar()
+
+                write(display, "midbottom", [int(player.x), int(player.y)], fonts[30], Colors.WHITE, *v2_center(display.size))
 
                 for particle in all_particles:
                     particle.update()
@@ -296,25 +320,6 @@ def main():
                     display.width - 9,
                     5,
                 )
-                write(
-                    display,
-                    "center",
-                    f"{player.x:.0f},{player.y:.0f}",
-                    fonts[30],
-                    Colors.WHITE,
-                    player.srect.centerx,
-                    player.srect.top - 30,
-                )
-
-                write(
-                    display,
-                    "topleft",
-                    "press <i> to show inventory | press <o> to show abilities",
-                    fonts[20],
-                    Colors.WHITE,
-                    5,
-                    5,
-                )
 
                 display.blit(player.black_surf, (0, 0))
 
@@ -326,10 +331,8 @@ def main():
                 if game.dialogue:
                     game.dialogue.update()
 
-                workbench_ui.update()
-
         pygame.display.update()
 
 
 if __name__ == "__main__":
-    main()
+    main(debug=True)

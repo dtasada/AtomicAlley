@@ -30,28 +30,43 @@ class WorkBenchUI:
                 self.name, ANTI_ALIASING, Colors.WHITE
             )
             self.text_rect = self.text_image.get_rect()
+            self.selected = False
         
         def process_event(self, event):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if pygame.Rect(self.cell_topleft, [self.wb.cell_size] * 2).collidepoint(pygame.mouse.get_pos()):
-                        print(self.name, event)
+                    if self.rect.collidepoint(pygame.mouse.get_pos()):
+                        if self.selected:
+                            self.selected = False
+                        else:
+                            if self.wb.selected_index < 3:
+                                self.selected = True
 
         def update(self):
             self.cell_topleft = (
                 self.wb.grid_start[0] + self.wb.cell_size * self.wpos[0],
-                self.wb.grid_start[1]
-                + self.wb.cell_size * self.wpos[1]
+                self.wb.grid_start[1] + self.wb.cell_size * self.wpos[1]
             )
-            self.rect.center = (
-                self.cell_topleft[0] + self.wb.cell_size / 2,
-                self.cell_topleft[1] + self.wb.cell_size / 2,
-            )
-            display.blit(self.image, self.rect)
+            if not self.selected:
+                self.rect.center = (
+                    self.cell_topleft[0] + self.wb.cell_size / 2,
+                    self.cell_topleft[1] + self.wb.cell_size / 2,
+                )
+                display.blit(self.image, self.rect)
+            else:
+                self.wb.selected_index += 1
+                self.rect.center = (
+                    self.wb.master_rect.x + self.wb.master_rect.width / 2 + self.wb.selected_index * (self.wb.master_rect.width / 8) + 38,
+                    self.wb.master_rect.y + self.wb.master_rect.height / 2 - 50
+                )
+                display.blit(self.image, self.rect)
+                if (self.wb.num_selected > 1 and self.wb.selected_index == 1) or (self.wb.num_selected in (1, 3) and self.wb.selected_index == 2):
+                    write(display, "center", "+", fonts[50], Colors.WHITE, self.wb.master_rect.x + self.wb.master_rect.width / 2 + self.wb.selected_index * (self.wb.master_rect.width / 8) + 95, self.wb.master_rect.y + self.wb.master_rect.height / 2 - 50)
+
 
         def draw_text(self):
             mp = pygame.mouse.get_pos()
-            if pygame.Rect(self.cell_topleft, [self.wb.cell_size] * 2).collidepoint(mp):
+            if self.rect.collidepoint(mp):
                 self.text_rect.topleft = mp
                 display.blit(self.text_image, self.text_rect)
 
@@ -67,18 +82,29 @@ class WorkBenchUI:
             self.outer_margin[0],
             self.outer_margin[1],
             display.width - self.outer_margin[0] * 2,
-            display.height - self.outer_margin[1] * 2,
+            display.height - self.outer_margin[1] * 2 + 80,
         )
         self.set_vars()
 
-        # WorkBenchUI.items is a grid of 4x4, each of which contains None, or a selection of atoms or Artifacts
-        self.items: List[List[WorkBenchUI.GridItem | None]] = [
-            [None] * self.grid_size[1]
-        ] * self.grid_size[0]
         self.selected_items: List[WorkBenchUI.GridItem | None] = []
         self.gen_grid()
         self.empty_glass_image = imgload("resources", "images", "empty_glass.png")
         self.empty_glass_rect = self.empty_glass_image.get_rect(center=(860, 225))
+        self.glass = None
+        # concocts button
+        self.concoct_image = pygame.Surface((160, 70))
+        self.concoct_image.fill(Colors.GRAYS[90])
+        pygame.draw.rect(self.concoct_image, Colors.GRAYS[230], (0, 0, *self.concoct_image.size), 4)
+        write(self.concoct_image, "center", "concoct!", fonts[30], Colors.WHITE, *[s / 2 for s in self.concoct_image.size])
+        self.concoct_rect = self.concoct_image.get_rect()
+    
+    @property
+    def num_selected(self):
+        return len(self.get_selected)
+
+    @property
+    def get_selected(self):
+        return [item for row in self.items for item in row if item is not None and item.selected]
 
     def enable(self):
         self.enabled = True
@@ -88,7 +114,7 @@ class WorkBenchUI:
         self.enabled = False
 
     def set_vars(self):
-        yoffset = (display.height / 2) if self.enabled else (display.height + 240)
+        yoffset = (display.height / 2 + 60) if self.enabled else (display.height + 300)
         self.master_rect.centery += (yoffset - self.master_rect.centery) * 0.6
 
         self.cell_size = (
@@ -118,16 +144,14 @@ class WorkBenchUI:
 
     def gen_grid(self) -> None:
         "Generates the workbench inventory (in-place)"
-        for y, row in enumerate(self.items):
-            for x, _ in enumerate(row):
-                if random.randint(1, 16) < 4:  # 1 in 4 chance for an item
+        self.items = [[None for x in range(4)] for y in range(4)]
+        for y in range(len(self.items)):
+            for x in range(len(self.items[0])):
+                if rand(1, 4) == 1:
+                    # make it an atom
                     self.items[y][x] = self.random_item(
                         (x, y),
-                        (
-                            ItemTypes.ARTIFACT  # 1 in 8 chance for an artifact
-                            if random.randint(1, 8) == 1
-                            else ItemTypes.ATOM
-                        ),
+                        ItemTypes.ATOM
                     )
 
     def random_item(self, wpos: v2, type_: ItemTypes) -> GridItem:
@@ -145,7 +169,11 @@ class WorkBenchUI:
         pygame.draw.rect(
             display, Colors.WHITE, self.master_rect, 2, border_radius=BORDER_RADIUS
         )
+        # helping information
+        write(display, "topleft", "you can also drop items from your inventory", fonts[16], Colors.WHITE, self.master_rect.x + 8, self.master_rect.y + 6)
 
+        # render the items on the grid
+        self.selected_index = 0
         for y, row in enumerate(self.items):
             pygame.draw.line(
                 display,
@@ -160,12 +188,24 @@ class WorkBenchUI:
                     (self.grid_start[0] + self.cell_size * x, self.grid_start[1]),
                     (self.grid_start[0] + self.cell_size * x, self.grid_end[1]),
                 )
-
-                if item:
+                if item is not None:
                     item.update()
+        # selected grid
+        # pygame.draw.line(
+        #     display,
+        #     Colors.WHITE,
+        #     (self.master_rect.x + self.master_rect.width / 2 + 40, self.master_rect.y + self.master_rect.height / 2 - 70),
+        #     (self.master_rect.right - 50, self.master_rect.y + self.master_rect.height / 2 - 70),
+        # )
+        # pygame.draw.line(
+        #     display,
+        #     Colors.WHITE,
+        #     (self.master_rect.x + self.master_rect.width / 2 + 40, self.master_rect.y + self.master_rect.height / 2 + 10),
+        #     (self.master_rect.right - 50, self.master_rect.y + self.master_rect.height / 2 + 10),
+        # )
 
-        for _, row in enumerate(self.items):
-            for _, item in enumerate(row):
+        for row in self.items:
+            for item in row:
                 if item:
                     item.draw_text()
 
@@ -175,8 +215,21 @@ class WorkBenchUI:
         
         # empty glass indicator
         xo, yo = self.master_rect.topleft
-        self.empty_glass_rect.midtop = (xo + self.master_rect.width / 4 * 3, yo + 50)
-        display.blit(self.empty_glass_image, self.empty_glass_rect)
-
+        self.empty_glass_rect.midtop = (xo + self.master_rect.width / 4 * 3 - 58, yo + 40)
+        if self.glass is None:
+            display.blit(self.empty_glass_image, self.empty_glass_rect)
+            if self.empty_glass_rect.collidepoint(pygame.mouse.get_pos()):
+                write(display, "topleft", "*insert glass*", fonts[FontSize.SMALL], Colors.WHITE, *pygame.mouse.get_pos())
+        else:
+            display.blit(self.glass.image, self.empty_glass_rect)
+            if self.empty_glass_rect.collidepoint(pygame.mouse.get_pos()):
+                write(display, "topleft", self.glass.name.replace("_", " "), fonts[FontSize.SMALL], Colors.WHITE, *pygame.mouse.get_pos())
+        # concoct button
+        if self.glass is not None and self.num_selected >= 1:
+            self.concoct_rect.topleft = (
+                self.empty_glass_rect.x + 92,
+                self.empty_glass_rect.y + 14
+            )
+            display.blit(self.concoct_image, self.concoct_rect)
 
 workbench_ui = WorkBenchUI()

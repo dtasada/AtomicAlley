@@ -60,23 +60,13 @@ class Interactive:
                 "Error: Interactive object has type of MUT_PLAYER but no given `player_effect`"
             )
             sys.exit(1)
-
-    def update(self, player, interactives):
+        
+    def update(self):
         setattr(self.rect, self.anchor, v2_sub(cart_to_iso(*self.wpos, 1), game.scroll))
-
-        # update interactives
-        self.focused = (
-            sorted(
-                interactives,  # only focus the closest to player
-                key=lambda i_: v2_len(v2_sub(i_.wpos, player.wpos)),
-                reverse=False,
-            )[0]
-            == self
-        ) and v2_len(v2_sub(self.wpos, player.wpos)) <= 3
 
         display.blit(self.image, self.rect)
 
-        if self.focused:  # self.focused gets updated in main loop
+        if self.focused:  # self.focused gets updated in main loop | yes it does indeed
             self.prompt.start()
             self.prompt.update()
 
@@ -89,6 +79,7 @@ class Interactive:
                         game.set_state(self.target_state)
 
                 if self.other_lambda:
-                    self.other_lambda()
+                    self.other_lambda(self)
         else:
             self.prompt.kill()
+        
