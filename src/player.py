@@ -166,7 +166,6 @@ class Player:
                 if workbench_ui.glass is not None:
                     if workbench_ui.concoct_rect.collidepoint(event.pos):
                         reagents = [getattr(Atoms, sel.name.upper()) for sel in workbench_ui.get_selected]
-                        pprint([x.name for x in workbench_ui.get_selected])
                         tonic = Artifact(
                             ArtifactType.TONIC,
                             atom_images[6],
@@ -244,6 +243,7 @@ class Player:
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
+                        prop_text = "asd"
                         if prop.mag_type == MagType.REL_COEF:
                             mag = (
                                 str(
@@ -261,8 +261,6 @@ class Player:
                         elif prop.mag_type == MagType.SET_ABS:
                             if prop.type == Properties.TRADE_FOR_CHOICES:
                                 prop_text = f"Can be traded for {prop.magnitude} random elements"
-                        else:
-                            prop_text = "asd"
                         write(
                             display,
                             "topleft",

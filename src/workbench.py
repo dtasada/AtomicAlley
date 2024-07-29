@@ -29,9 +29,20 @@ class WorkBenchUI:
             self.text_image = fonts[FontSize.SMALL].render(
                 self.name, ANTI_ALIASING, Colors.WHITE
             )
+            self.shadow_text_image = fonts[FontSize.SMALL].render(
+                "Shadowed " + self.name, ANTI_ALIASING, Colors.WHITE
+            )
             self.text_rect = self.text_image.get_rect()
             self.selected = False
-        
+            # shadow
+            self.shadow = rand(1, 1) == 1
+            self.shadow_image = self.image.copy()
+            for y in range(self.shadow_image.height):
+                for x in range(self.shadow_image.width):
+                    if self.image.get_at((x, y)) != (0, 0, 0, 0):
+                        if rand(1, 4) == 1:
+                            self.shadow_image.set_at((x, y), [rand(0, 255) for _ in range(3)])
+            
         def process_event(self, event):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -43,6 +54,7 @@ class WorkBenchUI:
                                 self.selected = True
 
         def update(self):
+            img = self.image if not self.shadow else self.shadow_image
             self.cell_topleft = (
                 self.wb.grid_start[0] + self.wb.cell_size * self.wpos[0],
                 self.wb.grid_start[1] + self.wb.cell_size * self.wpos[1]
@@ -52,14 +64,14 @@ class WorkBenchUI:
                     self.cell_topleft[0] + self.wb.cell_size / 2,
                     self.cell_topleft[1] + self.wb.cell_size / 2,
                 )
-                display.blit(self.image, self.rect)
+                display.blit(img, self.rect)
             else:
                 self.wb.selected_index += 1
                 self.rect.center = (
                     self.wb.master_rect.x + self.wb.master_rect.width / 2 + self.wb.selected_index * (self.wb.master_rect.width / 8) + 38,
                     self.wb.master_rect.y + self.wb.master_rect.height / 2 - 50
                 )
-                display.blit(self.image, self.rect)
+                display.blit(img, self.rect)
                 if (self.wb.num_selected > 1 and self.wb.selected_index == 1) or (self.wb.num_selected in (1, 3) and self.wb.selected_index == 2):
                     write(display, "center", "+", fonts[50], Colors.WHITE, self.wb.master_rect.x + self.wb.master_rect.width / 2 + self.wb.selected_index * (self.wb.master_rect.width / 8) + 95, self.wb.master_rect.y + self.wb.master_rect.height / 2 - 50)
 
@@ -68,7 +80,7 @@ class WorkBenchUI:
             mp = pygame.mouse.get_pos()
             if self.rect.collidepoint(mp):
                 self.text_rect.topleft = mp
-                display.blit(self.text_image, self.text_rect)
+                display.blit(self.text_image if not self.shadow else self.shadow_text_image, self.text_rect)
 
     def __init__(self):
         self.enabled = False
@@ -86,7 +98,7 @@ class WorkBenchUI:
         )
         self.set_vars()
 
-        self.selected_items: List[WorkBenchUI.GridItem | None] = []
+        self.selected_items = []
         self.gen_grid()
         self.empty_glass_image = imgload("resources", "images", "empty_glass.png")
         self.empty_glass_rect = self.empty_glass_image.get_rect(center=(860, 225))

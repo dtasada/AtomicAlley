@@ -34,12 +34,6 @@ class Atom:
     ):
         self.name = type_.name.capitalize()
         self.image = atom_images[type_.value]
-        self.shadow_image = self.image.copy()
-        self.shadow = rand(1, 8) == 1
-        for y in range(self.shadow_image.height):
-            for x in range(self.shadow_image.width):
-                if rand(1, 50) == 0:
-                    self.shadow_image.set_at((x, y), [rand(0, 255) for _ in range(3)])
         self.color = color
         self.properties = properties
 
