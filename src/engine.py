@@ -1,7 +1,7 @@
 import pygame
 import pygame.gfxdraw
 from pygame.time import get_ticks as ticks
-from math import sqrt, floor
+from math import sqrt, floor, atan2, cos, sin, pi
 from random import randint as rand
 from pathlib import Path
 from enum import Enum
@@ -9,6 +9,7 @@ from typing import Any, List, Tuple
 from pathlib import Path
 from random import randint as rand, uniform as randf, choice
 from pprint import pprint
+
 
 # Types
 v2 = Tuple[float, float]
@@ -91,7 +92,7 @@ def cart_dir_to_vel(
     m=1,
 ):
     # TODO: Collision w/ objects
-    # TODO: it's not handled here
+    # TODO: nope it's not handled here
     xvel, yvel, it = 0, 0, None
     if topleft:
         top = left = True
@@ -255,6 +256,24 @@ def imgload(
         return ret
 
 
+class Smart:
+    @property
+    def x(self):
+        return self.mmrect.x / game.rect_scale
+
+    @x.setter
+    def x(self, value):
+        self.mmrect.x = value * game.rect_scale
+
+    @property
+    def y(self):
+        return self.mmrect.y / game.rect_scale
+    
+    @y.setter
+    def y(self, value):
+        self.mmrect.y = value * game.rect_scale
+
+
 class Game:
     def __init__(self):
         self.running = True
@@ -281,6 +300,15 @@ class Game:
         )
         self.progress_bar_image = self.progress_bar_images[0]
         self.wall_height = 5
+        self.screen_shake_offset = [0, 0]
+        self.last_screen_shake = ticks()
+        self.screen_shake_mult = 0
+        self.screen_shake_duration = None
+        
+    def screen_shake(self, mult, dur):
+        self.screen_shake_duration = dur
+        self.screen_shake_mult = mult
+        self.last_screen_shake = ticks()
 
     def set_state(self, target_state):
         global buzzing_channel
@@ -335,7 +363,8 @@ class Colors:
 # Globals
 clock = pygame.time.Clock()
 pygame.display.set_caption("Atomic Alley")
-display = pygame.display.set_mode((1280, 720), vsync=1)
+window = pygame.display.set_mode((1280, 720), vsync=1)
+display = pygame.display.get_surface()
 game = Game()
 all_particles = []
 
@@ -350,7 +379,9 @@ class World:
     def __init__(self):
         self.data = {}
         self.interactives = {}
+        self.enemies = {}
         self.late_interactives = []
+        self.late_enemies = []
 
     def try_modifying(self, data, check_higher=False):
         targ_pos, value = data

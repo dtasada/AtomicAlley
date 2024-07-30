@@ -11,7 +11,9 @@ from src.engine import *
 from src.objects import *
 from src.player import *
 from src.workbench import *
+from src.enemies import *
 from src.writers import *
+
 
 clock = pygame.time.Clock()
 tiles = imgload("resources", "images", "tiles", "tile_sheet.png", columns=6)
@@ -70,6 +72,9 @@ def generate_world():
                     interactive = Artifacts.ERLENMEYER_FLASK.to_world((x, y))
                     interactive.other_lambda = player.new_inventory_item
                     world.interactives[(x, y)] = interactive
+                if rand(1, 300) == 1:
+                    enemy = Enemy(x, y)
+                    world.enemies[(x, y)] = enemy
                 # walls
                 if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
                     for zo in range(game.wall_height):
@@ -256,6 +261,7 @@ def main(debug=False):
 
                 player.check_rects = []
                 world.late_interactives = []
+                world.late_enemies = []
                 for xo in range(-20, 21):
                     for yo in range(-20, 21):
                         # UPDATE TILES
@@ -277,18 +283,32 @@ def main(debug=False):
                                 display.blit(tiles[tile], (blit_x, blit_y))
                         # UPDATE INTERACTIVES
                         x, y = int(player.x) + xo, int(player.y) + yo
-                        if (x, y) not in world.interactives:
-                            continue
-                        interactive = world.interactives[(x, y)]
-                        if abs(x - player.x) <= 2 and abs(y - player.y) <= 2 and not world.late_interactives:
-                            interactive.focused = True
+                        if (x, y) in world.interactives:
+                            interactive = world.interactives[(x, y)]
                             world.late_interactives.append(interactive)
-                        else:
-                            interactive.focused = False
-                            interactive.update()
+                         
+                        # update enemies
+                        if (x, y) in world.enemies:
+                            enemy = world.enemies[(x, y)]
+                            world.late_enemies.append(enemy)
 
                 for interactive in world.late_interactives:
                     interactive.update()
+                    if abs(x - player.x) <= 2 and abs(y - player.y) <= 2 and not world.late_interactives:
+                        interactive.focused = True
+                        world.late_interactives.append(interactive)
+                    else:
+                        interactive.focused = False
+                        interactive.update()
+                
+                for enemy in world.late_enemies:
+                    enemy.update()
+                    # take damage
+                    if player.slashing:
+                        if player.slash_rect.colliderect(enemy.srect):
+                            if ticks() - enemy.last_take_damage >= 400:
+                                enemy.take_damage(10, player.it)
+                                print(rand(0, 10))
 
                 for shadow in all_shadows:
                     shadow.update()
@@ -331,8 +351,19 @@ def main(debug=False):
                 if game.dialogue:
                     game.dialogue.update()
 
+        if game.screen_shake_mult > 0:
+            game.screen_shake_offset = [
+                randf(-game.screen_shake_mult, game.screen_shake_mult),
+                randf(-game.screen_shake_mult, game.screen_shake_mult),
+            ]
+            if ticks() - game.last_screen_shake >= game.screen_shake_duration:
+                game.screen_shake_offset = [0, 0]
+                game.screen_shake_mult = 0
+        window.blit(display, game.screen_shake_offset)
+
         pygame.display.update()
 
+        clock.tick(game.target_fps)
 
 if __name__ == "__main__":
     main(debug=True)

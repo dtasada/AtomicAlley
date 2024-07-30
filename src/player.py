@@ -2,7 +2,7 @@ from .engine import *
 from .artifacts import *
 
 
-class Player:
+class Player(Smart):
     def __init__(self):
         self.mmrect = pygame.FRect((0, 0, 20, 20))
         self.wpos = (self.x, self.y)
@@ -122,22 +122,14 @@ class Player:
         self.black_stripe = pygame.Surface((display.width, 500))
         self.black_stripe.set_alpha(120)
         self.black_stripe_rect = self.black_stripe.get_rect(topleft=(display.width + 10, 100))
-    
-    @property
-    def x(self):
-        return self.mmrect.x / game.rect_scale
-
-    @x.setter
-    def x(self, value):
-        self.mmrect.x = value * game.rect_scale
-
-    @property
-    def y(self):
-        return self.mmrect.y / game.rect_scale
-    
-    @y.setter
-    def y(self, value):
-        self.mmrect.y = value * game.rect_scale
+        # slash
+        self.slash_sprs = imgload("resources", "images", "player", "player_slash_spritesheet.png", columns=5, scale=4)
+        self.slash_rect = self.slash_sprs[0].get_rect()
+        self.last_slash = ticks()
+        self.slash_cooldown = 800
+        self.slash_index = 0
+        self.slashing = False
+        self.slash_direc = None
 
     def update(self):
         if game.state == States.PLAY and not game.dialogue:
@@ -192,6 +184,14 @@ class Player:
                     self.selected = 0
             
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            # slash
+            if not self.slashing:
+                if ticks() - self.last_slash >= self.slash_cooldown:
+                    self.slashing = True
+                    self.last_slash = ticks()
+                    self.slash_direc = self.it
+                    game.screen_shake(7, 100)
+            # workbench
             if workbench_ui.enabled:
                 for i, v in enumerate(self.inventory):
                     if v is not None:
@@ -279,6 +279,7 @@ class Player:
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
+                        print(x, prop.mag_type, prop.magnitude, prop.type)
                         prop_text = "asd"
                         if prop.mag_type == MagType.REL_COEF:
                             mag = (
@@ -409,6 +410,32 @@ class Player:
         if ticks() - self.last_dash >= self.dash_time:
             p = Particle(self.srect.centerx, self.srect.top + 12)
             all_particles.append(p)
+        # slashing
+        if self.slashing:
+            self.slash_index += 0.6
+            try:
+                self.slash_sprs[int(self.slash_index)]
+            except IndexError:
+                self.slashing = False
+                self.slash_index = 0
+            else:
+                center = [self.srect.centerx, self.srect.centery]
+                t = 80
+                if "left" in self.slash_direc:
+                    center[0] -= t
+                if "right" in self.slash_direc:
+                    center[0] += t
+                if "top" in self.slash_direc:
+                    center[1] -= t
+                if "bottom" in self.slash_direc:
+                    center[1] += t * 0.4
+                slash_img = self.slash_sprs[int(self.slash_index)]
+                if "left" in self.slash_direc:
+                    slash_img = pygame.transform.flip(slash_img, True, False)
+                # slash_img = pygame.transform.scale_by(slash_img, 1.4)
+                self.slash_rect.center = center
+                display.blit(slash_img, self.slash_rect)
+                # pygame.draw.rect(display, Colors.WHITE, self.slash_rect, 5)
 
     def get_dir_vector(self) -> v2:
         match self.it:

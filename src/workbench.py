@@ -75,7 +75,6 @@ class WorkBenchUI:
                 if (self.wb.num_selected > 1 and self.wb.selected_index == 1) or (self.wb.num_selected in (1, 3) and self.wb.selected_index == 2):
                     write(display, "center", "+", fonts[50], Colors.WHITE, self.wb.master_rect.x + self.wb.master_rect.width / 2 + self.wb.selected_index * (self.wb.master_rect.width / 8) + 95, self.wb.master_rect.y + self.wb.master_rect.height / 2 - 50)
 
-
         def draw_text(self):
             mp = pygame.mouse.get_pos()
             if self.rect.collidepoint(mp):
