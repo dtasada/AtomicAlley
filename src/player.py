@@ -9,51 +9,87 @@ class Player:
         self.blit_x = self.blit_y = 0
         self.dpos = (self.blit_x, self.blit_y)
         self.images = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: image
-            for i, image in enumerate(
+            Weapons.HANDS:
+            {
+                ("bottomleft", "bottom", "right", "topright", "top")[i]: image
+                for i, image in enumerate(
+                    imgload(
+                        "resources",
+                        "images",
+                        "player",
+                        "player_sheet.png",
+                        rows=5,
+                    )
+                )
+            },
+            Weapons.BAT:
+            {
+                ("bottomleft", "bottom", "right", "topright", "top", "bottomright", "topleft", "left")[i]: image
+                for i, image in enumerate(
                 imgload(
                     "resources",
                     "images",
                     "player",
-                    "player_sheet.png",
-                    rows=5,
+                    "player_bat_sheet.png",
+                    rows=8,
+                    )
                 )
-            )
+            }
         }
-
-        self.images["left"] = pygame.transform.flip(self.images["right"], True, False) 
-        
-        self.images["bottomright"] = pygame.transform.flip(self.images["bottomleft"], True, False) 
-        
-        self.images["topleft"] = pygame.transform.flip(self.images["topright"], True, False) 
-    
 
         self.run_frames = {
-            ("bottomleft", "bottom", "right", "topright", "top")[i]: row
-            for i, row in enumerate(
-                imgload(
-                    "resources",
-                    "images",
-                    "player",
-                    "player_run_sheet.png",
-                    rows=5,
-                    columns=6,
+            Weapons.HANDS:
+            {
+                ("bottomleft", "bottom", "right", "topright", "top")[i]: row
+                for i, row in enumerate(
+                    imgload(
+                        "resources",
+                        "images",
+                        "player",
+                        "player_run_sheet.png",
+                        rows=5,
+                        columns=6,
+                    )
                 )
-            )
+            },
+            Weapons.BAT:
+            {
+                ("bottomleft", "bottom", "right", "topright", "top", "bottomright", "topleft", "left")[i]: row
+                for i, row in enumerate(
+                    imgload(
+                        "resources",
+                        "images",
+                        "player",
+                        "player_bat_run_sheet.png",
+                        rows=8,
+                        columns=6,
+                    )
+                )
+            }
         }
-        self.run_frames["left"] = [
-            pygame.transform.flip(i, True, False) for i in self.run_frames["right"]
-        ]
-        self.run_frames["bottomright"] = [
-            pygame.transform.flip(i, True, False) for i in self.run_frames["bottomleft"]
-        ]
-        self.run_frames["topleft"] = [
-            pygame.transform.flip(i, True, False) for i in self.run_frames["topright"]
-        ]
 
+        for weapon in Weapons:
+            if weapon != Weapons.BAT:
+                self.images[weapon]["left"] = pygame.transform.flip(self.images[weapon]["right"], True, False) 
+                
+                self.images[weapon]["bottomright"] = pygame.transform.flip(self.images[weapon]["bottomleft"], True, False) 
+                
+                self.images[weapon]["topleft"] = pygame.transform.flip(self.images[weapon]["topright"], True, False) 
+
+                self.run_frames[weapon]["left"] = [
+                    pygame.transform.flip(i, True, False) for i in self.run_frames[weapon]["right"]
+                ]
+                self.run_frames[weapon]["bottomright"] = [
+                    pygame.transform.flip(i, True, False) for i in self.run_frames[weapon]["bottomleft"]
+                ]
+                self.run_frames[weapon]["topleft"] = [
+                    pygame.transform.flip(i, True, False) for i in self.run_frames[weapon]["topright"]
+                ]
+
+        self.weapon = Weapons.BAT
         self.current_frame = 0
         self.it = "bottom"
-        self.image = self.images[self.it]
+        self.image = self.images[self.weapon][self.it]
         self.width, self.height = self.image.get_size()
         self.rect = self.image.get_rect()
         self.srect = self.image.get_rect()
@@ -359,14 +395,14 @@ class Player:
         self.srect.y -= game.scroll[1]
         #
         if self.animate_run:
-            if self.current_frame >= len(self.run_frames[self.it]):
+            if self.current_frame >= len(self.run_frames[self.weapon][self.it]):
                 self.current_frame = 0
-            self.image = self.run_frames[self.it][int(self.current_frame)]
+            self.image = self.run_frames[self.weapon][self.it][int(self.current_frame)]
             self.current_frame += 0.14
             self.animate_run = False
         else:
             self.current_frame = 0
-            self.image = self.images[self.it]
+            self.image = self.images[self.weapon][self.it]
 
         display.blit(self.image, self.srect)
         #

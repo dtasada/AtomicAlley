@@ -318,6 +318,9 @@ class FontSize:
     DIALOGUE = 42
     TITLE = 64
 
+class Weapons(Enum):
+    HANDS = 0
+    BAT = 1
 
 class Colors:
     BLACK = (0, 0, 0)

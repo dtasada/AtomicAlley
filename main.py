@@ -306,7 +306,7 @@ def main(debug=False):
                 workbench_ui.update()
                 player.render_hotbar()
 
-                write(display, "midbottom", [int(player.x), int(player.y)], fonts[30], Colors.WHITE, *v2_center(display.size))
+         
 
                 for particle in all_particles:
                     particle.update()
