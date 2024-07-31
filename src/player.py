@@ -2,8 +2,26 @@ from .engine import *
 from .artifacts import *
 
 
+class PlayerAbilityTypes(Enum):
+    SLASH = 0
+    DASH = 1
+
+
+class PlayerAbility:
+    ability_sprs = imgload("resources", "images", "abilities.png", columns=2)
+    def __init__(self, type_, text, needed):
+        self.type_ = type_
+        self.text = text
+        self.needed = needed
+        self.image = PlayerAbility.ability_sprs[self.type_.value]
+
+
 class Player(Smart):
     def __init__(self):
+        # properties
+        self.slash_damage = 10
+        self.dash_damage = 5
+        # rest
         self.mmrect = pygame.FRect((0, 0, 20, 20))
         self.wpos = (self.x, self.y)
         self.blit_x = self.blit_y = 0
@@ -111,17 +129,20 @@ class Player(Smart):
         self.unavailable_image = imgload("resources", "images", "unavailable.png")
         self.selected = 0
         self.hotbar_length = 9
-        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.width + 10, 10))
-        self.inventory_rect = self.inventory_image.get_rect(topleft=(display.width + 10, display.height / 2 + 60))
+        self.hotbar_rect = self.hotbar_image.get_rect(topleft=(display.get_width() + 10, 10))
+        self.inventory_rect = self.inventory_image.get_rect(topleft=(display.get_width() + 10, display.get_height() / 2 + 60))
 
         # abilities
         self.show_abilities = False
-        self.black_surf = pygame.Surface(display.size)
+        self.black_surf = pygame.Surface(display.get_size())
         self.black_surf.set_alpha(0)
-        self.abilities = []
-        self.black_stripe = pygame.Surface((display.width, 500))
+        self.abilities = [
+            PlayerAbility(PlayerAbilityTypes.SLASH, "Your basic weapon, your swinging bat.\nLeft click to use.\nUpgradable with tonics.", None),
+            PlayerAbility(PlayerAbilityTypes.DASH, "Dashes towards character direction.\nSpacebar to use.\nUpgradable with tonics.", "asd"),
+        ]
+        self.black_stripe = pygame.Surface((display.get_width(), 500))
         self.black_stripe.set_alpha(120)
-        self.black_stripe_rect = self.black_stripe.get_rect(topleft=(display.width + 10, 100))
+        self.black_stripe_rect = self.black_stripe.get_rect(topleft=(display.get_width() + 10, 100))
         # slash
         self.slash_sprs = imgload("resources", "images", "player", "player_slash_spritesheet.png", columns=5, scale=4)
         self.slash_rect = self.slash_sprs[0].get_rect()
@@ -151,10 +172,10 @@ class Player(Smart):
         
     def scroll(self):
         game.fake_scroll[0] += (
-            self.rect.centerx - game.fake_scroll[0] - display.width // 2
+            self.rect.centerx - game.fake_scroll[0] - display.get_width() // 2
         ) * 0.1
         game.fake_scroll[1] += (
-            self.rect.centery - game.fake_scroll[1] - display.height // 2
+            self.rect.centery - game.fake_scroll[1] - display.get_height() // 2
         ) * 0.1
         game.scroll[0] = int(game.fake_scroll[0])
         game.scroll[1] = int(game.fake_scroll[1])
@@ -251,13 +272,13 @@ class Player(Smart):
         # hotbar
         m = 0.2
         if not self.show_hotbar:
-            d = (display.width + 10 - self.hotbar_rect.left) * m
-            bsd = (display.width + 10 - self.black_stripe_rect.left) * m
-            ind = (display.width + 120 - self.inventory_rect.centerx) * m
+            d = (display.get_width() + 10 - self.hotbar_rect.left) * m
+            bsd = (display.get_width() + 10 - self.black_stripe_rect.left) * m
+            ind = (display.get_width() + 120 - self.inventory_rect.centerx) * m
         else:
-            d = (display.width / 2 - self.hotbar_rect.centerx) * m
+            d = (display.get_width() / 2 - self.hotbar_rect.centerx) * m
             bsd = (0 - self.black_stripe_rect.left) * m
-            ind = (display.width / 2 + 254 - self.inventory_rect.centerx) * m
+            ind = (display.get_width() / 2 + 254 - self.inventory_rect.centerx) * m
         self.hotbar_rect.centerx += d
         self.inventory_rect.centerx += ind
         self.black_stripe_rect.left += bsd
@@ -269,7 +290,7 @@ class Player(Smart):
             artifact_rect = pygame.Rect(
                 self.hotbar_rect.x + R + 39 * x * R,
                 self.hotbar_rect.y + R,
-                *artifact.image.size,
+                *artifact.image.get_size(),
             )
             display.blit(artifact.image, artifact_rect)
             if artifact_rect.collidepoint(pygame.mouse.get_pos()):
@@ -279,7 +300,7 @@ class Player(Smart):
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
-                        print(x, prop.mag_type, prop.magnitude, prop.type)
+                        # print(x, prop.mag_type, prop.magnitude, prop.type)
                         prop_text = "asd"
                         if prop.mag_type == MagType.REL_COEF:
                             mag = (
@@ -334,16 +355,13 @@ class Player(Smart):
         # abilities
         if self.show_abilities:
             self.black_surf.set_alpha(
-                self.black_surf.get_alpha() + (60 - self.black_surf.get_alpha()) * 0.2
+                self.black_surf.get_alpha() + (80 - self.black_surf.get_alpha()) * 0.1
             )
         else:
             self.black_surf.set_alpha(
                 self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2
             )
         
-    def get_collisions(self):
-        return
-
     def dash(self):
         self.dashing = True
         kwargs = {
@@ -475,3 +493,27 @@ class PlayerShadow:
         display.blit(self.image, self.srect)
         if self.alpha <= 0:
             all_shadows.remove(self)
+
+
+class DamageIndicator:
+    def __init__(self, damage, nature, enemy):
+        self.image = fonts[40].render(str(damage), True, Colors.WHITE if nature else Colors.RED)
+        self.xo = rand(-40, 40)
+        self.yo = -80
+        self.yvel = -1.5
+        self.rect = self.image.get_frect()
+        self.enemy = enemy
+        self.last_spawned = ticks()
+    
+    def update(self):
+        self.draw()
+
+    def draw(self):
+        self.rect.center = (self.enemy.srect.centerx + self.xo, self.enemy.srect.top + self.yo)
+        self.yo += self.yvel
+        if ticks() - self.last_spawned >= 1000:
+            self.image.set_alpha(self.image.get_alpha() - 10)
+            if self.image.get_alpha() <= 0:
+                all_particles.remove(self)
+        self.rect.y += self.yvel
+        display.blit(self.image, self.rect)

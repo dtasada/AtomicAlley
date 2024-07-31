@@ -1,5 +1,4 @@
 import pygame
-import pygame.gfxdraw
 from pygame.time import get_ticks as ticks
 from math import sqrt, floor, atan2, cos, sin, pi
 from random import randint as rand
@@ -72,7 +71,7 @@ underlines = [
 
 def darken(img, m):
     ret = img.copy()
-    black = pygame.Surface(img.size).convert_alpha()
+    black = pygame.Surface(img.get_size()).convert_alpha()
     black.fill(Colors.BLACK)
     black.set_alpha(m * 255)
     img.blit(black, (0, 0))
@@ -288,13 +287,6 @@ class Game:
         self.loading = False
         self.rect_scale = 20
         self.loading_progress = 0.0
-        # self.progress_bar_images = [
-        #     pygame.transform.scale(
-        #         pbi.subsurface(0, pbi.height * i / 11, pbi.width, pbi.height / 11),
-        #         (512, 48),
-        #     )
-        #     for i in range(0, 11)
-        # ]
         self.progress_bar_images = imgload(
             "resources", "images", "menu", "loading.png", rows=11, scale=3
         )
@@ -319,7 +311,7 @@ class Game:
 
             pygame.mixer.music.unload()
             pygame.mixer.music.load(Music.MAIN_MENU)
-            pygame.mixer_music.play(-1)
+            pygame.mixer.music.play(-1)
 
         if self.state == States.MAIN_MENU and target_state == States.PLAY:
             buzzing_channel.stop()
@@ -381,6 +373,7 @@ class World:
         self.interactives = {}
         self.enemies = {}
         self.late_interactives = []
+        self.already_interacted = False
         self.late_enemies = []
 
     def try_modifying(self, data, check_higher=False):
@@ -518,10 +511,6 @@ class Particle:
         self.x += self.xvel
         self.yvel += 0.5
         self.y += self.yvel
-        pygame.gfxdraw.filled_circle(
-            display, int(self.x), int(self.y), self.r, self.color
-        )
-        # pygame.gfxdraw.aacircle(display, int(self.x), int(self.y), self.r, Colors.GRAYS[220])
         if ticks() - self.last_spawn >= 270:
             all_particles.remove(self)
 

@@ -37,8 +37,8 @@ class WorkBenchUI:
             # shadow
             self.shadow = rand(1, 1) == 1
             self.shadow_image = self.image.copy()
-            for y in range(self.shadow_image.height):
-                for x in range(self.shadow_image.width):
+            for y in range(self.shadow_image.get_height()):
+                for x in range(self.shadow_image.get_width()):
                     if self.image.get_at((x, y)) != (0, 0, 0, 0):
                         if rand(1, 4) == 1:
                             self.shadow_image.set_at((x, y), [rand(0, 255) for _ in range(3)])
@@ -92,8 +92,8 @@ class WorkBenchUI:
         self.master_rect = pygame.Rect(
             self.outer_margin[0],
             self.outer_margin[1],
-            display.width - self.outer_margin[0] * 2,
-            display.height - self.outer_margin[1] * 2 + 80,
+            display.get_width() - self.outer_margin[0] * 2,
+            display.get_height() - self.outer_margin[1] * 2 + 80,
         )
         self.set_vars()
 
@@ -105,8 +105,8 @@ class WorkBenchUI:
         # concocts button
         self.concoct_image = pygame.Surface((160, 70))
         self.concoct_image.fill(Colors.GRAYS[90])
-        pygame.draw.rect(self.concoct_image, Colors.GRAYS[230], (0, 0, *self.concoct_image.size), 4)
-        write(self.concoct_image, "center", "concoct!", fonts[30], Colors.WHITE, *[s / 2 for s in self.concoct_image.size])
+        pygame.draw.rect(self.concoct_image, Colors.GRAYS[230], (0, 0, *self.concoct_image.get_size()), 4)
+        write(self.concoct_image, "center", "concoct!", fonts[30], Colors.WHITE, *[s / 2 for s in self.concoct_image.get_size()])
         self.concoct_rect = self.concoct_image.get_rect()
     
     @property
@@ -125,7 +125,7 @@ class WorkBenchUI:
         self.enabled = False
 
     def set_vars(self):
-        yoffset = (display.height / 2 + 60) if self.enabled else (display.height + 300)
+        yoffset = (display.get_height() / 2 + 60) if self.enabled else (display.get_height() + 300)
         self.master_rect.centery += (yoffset - self.master_rect.centery) * 0.6
 
         self.cell_size = (

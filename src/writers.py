@@ -30,14 +30,16 @@ class TextWriter:
         self.show = False
         if game.dialogue == self:
             game.dialogue = None
+    
+    def process_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_z:
+                if self.index < len(self.body_images) - 1:
+                    self.index = len(self.body_images) - 1
+                else:
+                    self.kill()
 
     def update(self):
-        if pygame.key.get_just_pressed()[pygame.K_SPACE]:
-            if self.index < len(self.body_images) - 1:
-                self.index = len(self.body_images) - 1
-            else:
-                self.kill()
-
         display.blit(
             self.body_images[floor(self.index)], self.body_rects[floor(self.index)]
         )

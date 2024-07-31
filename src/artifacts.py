@@ -139,7 +139,7 @@ class ArtifactHotbar(Artifact):
             "\n".join([r.name for r in origin.reagents]) if self.reagents else self.name,
             fonts[font_size],
             self.text_color,
-            *[s / 2 for s in self.image.size],
+            *[s / 2 for s in self.image.get_size()],
         )
 
 

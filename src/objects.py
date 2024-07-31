@@ -36,7 +36,7 @@ class Interactive:
         self.wpos = world_pos  # world pos, not blit pos
         self.prompt = TextWriter(
             f"{self.description}: press <e> to interact",
-            (display.width / 2, display.height * 2 / 3),
+            (display.get_width() / 2, display.get_height() * 2 / 3),
             FontSize.SMALL,
             Colors.WHITE,
             anchor="center",
@@ -60,17 +60,10 @@ class Interactive:
                 "Error: Interactive object has type of MUT_PLAYER but no given `player_effect`"
             )
             sys.exit(1)
-        
-    def update(self):
-        setattr(self.rect, self.anchor, v2_sub(cart_to_iso(*self.wpos, 1), game.scroll))
-
-        display.blit(self.image, self.rect)
-
-        if self.focused:  # self.focused gets updated in main loop | yes it does indeed
-            self.prompt.start()
-            self.prompt.update()
-
-            if pygame.key.get_just_pressed()[pygame.K_e]:
+    
+    def process_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_e:
                 match self.do:
                     case Interactive.DIALOGUE:
                         game.dialogue = self.dialogues[0]
@@ -80,6 +73,15 @@ class Interactive:
 
                 if self.other_lambda:
                     self.other_lambda(self)
+            
+    def update(self):
+        setattr(self.rect, self.anchor, v2_sub(cart_to_iso(*self.wpos, 1), game.scroll))
+
+        display.blit(self.image, self.rect)
+
+        if self.focused:  # self.focused gets updated in main loop | yes it does indeed
+            self.prompt.start()
+            self.prompt.update()
         else:
             self.prompt.kill()
         

@@ -2,6 +2,8 @@
 
 import pygame
 import sys
+import asyncio
+from contextlib import suppress
 
 from threading import Thread
 
@@ -131,7 +133,7 @@ def generate_world():
     game.loading_progress = 0
 
 
-def main(debug=False):
+async def main(debug=False):
     buttons = {
         States.MAIN_MENU: [
             ButtonToggle((100, 100), 40, "toggle", 10),
@@ -139,30 +141,13 @@ def main(debug=False):
         ],
         States.MAIN_MENU: [
             ButtonLabel(
-                (display.width / 2, display.height / 2),
+                (display.get_width() / 2, display.get_height() / 2),
                 100,
                 "PLAY",
                 lambda: game.set_state(States.PLAY),
             ),
         ],
     }
-
-    # world.interactives = [
-    #     Interactive(
-    #         "Chest",
-    #         imgload("resources", "images", "tiles", "chest.png"),
-    #         (1, 1),
-    #         Interactive.DIALOGUE,
-    #         dialogues=[Dialogue("Wow this alley really is atomic!", "Dexter")],
-    #     ),
-    #     Interactive(
-    #         "Workbench",
-    #         imgload("resources", "images", "tiles", "workbench.png"),
-    #         (4, 2),
-    #         other_lambda=lambda: workbench_ui.enable(),
-    #     ),
-    #     Artifacts.TONIC_OF_LIFE.to_world((6, 6)),
-    # ]
 
     title_images = [
         imgload("resources", "images", "menu", "title0.png", scale=5),
@@ -180,6 +165,7 @@ def main(debug=False):
     while game.running:
         game.late_events = []
         for event in pygame.event.get():
+            game.late_events.append(event)
             for state, array in buttons.items():
                 for button in array:
                     if state == game.state:
@@ -236,7 +222,7 @@ def main(debug=False):
                         show_any_key = not show_any_key
                         last_started = ticks()
 
-                text_pos = (display.width / 2, 6 * display.height / 7)
+                text_pos = (display.get_width() / 2, 6 * display.get_height() / 7)
                 if show_any_key:
                     write(
                         display,
@@ -251,8 +237,8 @@ def main(debug=False):
                     display.blit(
                         game.progress_bar_image,
                         (
-                            text_pos[0] - game.progress_bar_image.width / 2,
-                            text_pos[1] - game.progress_bar_image.height / 2,
+                            text_pos[0] - game.progress_bar_image.get_width() / 2,
+                            text_pos[1] - game.progress_bar_image.get_height() / 2,
                         ),
                     )
 
@@ -262,6 +248,7 @@ def main(debug=False):
                 player.check_rects = []
                 world.late_interactives = []
                 world.late_enemies = []
+                world.already_interacted = False
                 for xo in range(-20, 21):
                     for yo in range(-20, 21):
                         # UPDATE TILES
@@ -293,23 +280,25 @@ def main(debug=False):
                             world.late_enemies.append(enemy)
 
                 for interactive in world.late_interactives:
-                    interactive.update()
-                    if abs(x - player.x) <= 2 and abs(y - player.y) <= 2 and not world.late_interactives:
+                    x, y = interactive.wpos
+                    if not world.already_interacted and abs(x - player.x) <= 2 and abs(y - player.y) <= 2:
                         interactive.focused = True
-                        world.late_interactives.append(interactive)
+                        world.already_interacted = True
                     else:
                         interactive.focused = False
-                        interactive.update()
+                    interactive.update()
+                    for event in game.late_events:
+                        interactive.process_event(event)
                 
                 for enemy in world.late_enemies:
-                    enemy.update()
+                    enemy.update(player)
                     # take damage
                     if player.slashing:
                         if player.slash_rect.colliderect(enemy.srect):
-                            if ticks() - enemy.last_take_damage >= 400:
+                            if not enemy.taking_damage:
                                 enemy.take_damage(10, player.it)
-                                print(rand(0, 10))
-
+                                all_particles.append(DamageIndicator(10, True, enemy))
+                    break
                 for shadow in all_shadows:
                     shadow.update()
 
@@ -337,19 +326,38 @@ def main(debug=False):
                     int(clock.get_fps()),
                     fonts[25],
                     Colors.WHITE,
-                    display.width - 9,
+                    display.get_width() - 9,
                     5,
                 )
 
                 display.blit(player.black_surf, (0, 0))
+                if player.black_surf.get_alpha() >= 65:
+                    for x, ability in enumerate(player.abilities):
+                        rect = pygame.Rect((0, 0, 43 * R, 43 * R))
+                        rect.center = (display.get_width() / 2, display.get_height() / 2)
+                        rect.x += x * 50 * R - 80
+                        display.blit(ability.image, rect)
+                        text_x, text_y = pygame.mouse.get_pos()
+                        text_y += 80
+                        if rect.collidepoint(pygame.mouse.get_pos()):
+                            text = ability.text
+                            if ability.type_ == PlayerAbilityTypes.SLASH:
+                                text += f"\nCurrent damage: {player.slash_damage}"
+                            elif ability.type_ == PlayerAbilityTypes.DASH:
+                                text += f"\nCurrent damage: {player.dash_damage}"
+                            write(display, "midtop", text, fonts[30], Colors.WHITE, text_x, text_y)
 
                 for state, array in buttons.items():
                     for button in array:
                         if state == game.state:
                             button.update()
 
-                if game.dialogue:
-                    game.dialogue.update()
+                if game.dialogue is not None:
+                    for event in game.late_events:
+                        if game.dialogue is not None:
+                            game.dialogue.process_event(event)
+                    if game.dialogue is not None:
+                        game.dialogue.update()
 
         if game.screen_shake_mult > 0:
             game.screen_shake_offset = [
@@ -365,5 +373,6 @@ def main(debug=False):
 
         clock.tick(game.target_fps)
 
-if __name__ == "__main__":
-    main(debug=True)
+        await asyncio.sleep(0)
+
+asyncio.run(main())
