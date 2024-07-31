@@ -151,6 +151,9 @@ class Player(Smart):
         self.slash_index = 0
         self.slashing = False
         self.slash_direc = None
+        # hp
+        self.hp = 50
+        # self.health_sprs = [pygame.transform.scale_by(img, 0.8) for img in game.progress_bar_images]
 
     def update(self):
         if game.state == States.PLAY and not game.dialogue:
@@ -424,6 +427,7 @@ class Player(Smart):
             self.image = self.images[self.weapon][self.it]
 
         display.blit(self.image, self.srect)
+        # display.blit(self.health_sprs[7], (100, 100))
         #
         if ticks() - self.last_dash >= self.dash_time:
             p = Particle(self.srect.centerx, self.srect.top + 12)
@@ -497,6 +501,7 @@ class PlayerShadow:
 
 class DamageIndicator:
     def __init__(self, damage, nature, enemy):
+        self.damage = damage
         self.image = fonts[40].render(str(damage), True, Colors.WHITE if nature else Colors.RED)
         self.xo = rand(-40, 40)
         self.yo = -80
@@ -509,6 +514,8 @@ class DamageIndicator:
         self.draw()
 
     def draw(self):
+        if self.damage == "KO!":
+            self.image = fonts[50].render("KO!", True, [(sin((ticks() * 0.01) + x) + 1) * 0.5 * 255 for x in range(3)])
         self.rect.center = (self.enemy.srect.centerx + self.xo, self.enemy.srect.top + self.yo)
         self.yo += self.yvel
         if ticks() - self.last_spawned >= 1000:

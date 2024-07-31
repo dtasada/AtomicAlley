@@ -434,10 +434,13 @@ class Node:
         else:
             self.room_type = RoomType.NORMAL
             self.has_chest = True
-            self.chest_offset = (
-                rand(1, self.room[2] - 1 - game.wall_height),
-                rand(1, self.room[3] - 1 - game.wall_height),
-            )
+            try:
+                self.chest_offset = (
+                    rand(1, self.room[2] - 1 - game.wall_height),
+                    rand(1, self.room[3] - 1 - game.wall_height),
+                )
+            except ValueError:
+                self.has_chest = False
 
     def get_leaves(self):
         if self.left is None and self.right is None:

@@ -7,7 +7,6 @@ class Enemy(Smart):
         self.mmrect = self.rect.copy()
         self.srect = self.rect.copy()
         self.x, self.y = x, y
-        self.hp = 100
         self.slide_pos = None
         self.xvel = self.yvel = 0
         self.last_take_damage = ticks()
@@ -17,8 +16,13 @@ class Enemy(Smart):
         if self.type == "square":
             self.color = [rand(0, 255) for _ in range(3)]
             self.image = None
+            self.hp = 30
+        self.max_hp = self.hp
         self.last_movement = ticks()
         self.last_x, self.last_y = x, y
+
+    def kill(self):
+        del world.enemies[(self.last_x, self.last_y)]
 
     def take_damage(self, damage, direc):
         self.hp -= damage
@@ -35,7 +39,7 @@ class Enemy(Smart):
                 "topleft",
             )
         }
-        self.xvel, self.yvel, _ = cart_dir_to_vel(**kwargs, m=2)
+        self.xvel, self.yvel, _ = cart_dir_to_vel(**kwargs, m=1.2)
         self.last_take_damage = ticks()
         self.vmult = 1
         self.taking_damage = True
@@ -45,10 +49,10 @@ class Enemy(Smart):
     
     def draw(self, player):
         # movement
-        self.vmult += -self.vmult * 0.1
+        self.vmult += -self.vmult * 0.05
         # x
         if self.type == "square" and ticks() - self.last_movement >= 2000:
-            m = 2
+            m = 1
             angle = randf(0, 2 * pi)
             self.xvel = cos(angle) * m
             self.yvel = sin(angle) * m
@@ -89,14 +93,15 @@ class Enemy(Smart):
             rect = pygame.Rect((0, 0, self.srect.width + xo, self.srect.height + yo))
             rect.center = self.srect.center
             pygame.draw.rect(display, self.color, rect)
+            pygame.draw.rect(display, Colors.WHITE, rect, 2)
         else:
             display.blit(self.image, self.srect)
         # health
-        if self.hp < 100:
+        if self.hp < self.max_hp:
             health_rect = pygame.Rect((0, 0, 80, 20))
             health_rect.midbottom = (self.srect.centerx + 30, self.srect.top - 30)
             pygame.draw.rect(display, Colors.BLACK, health_rect)
-            pygame.draw.rect(display, Colors.WHITE, (*health_rect[:2], self.hp / 100 * 80, health_rect[3]))
+            pygame.draw.rect(display, Colors.WHITE, (*health_rect[:2], self.hp / self.max_hp * 80, health_rect[3]))
             pygame.draw.rect(display, Colors.WHITE, health_rect, 2)
         if ticks() - self.last_take_damage >= 400:
             self.taking_damage = False

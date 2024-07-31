@@ -29,8 +29,6 @@ tiles.extend([
     imgload("resources", "images", "tiles", "workbench.png")
 ])
 
-pbi = pygame.image.load(Path("resources", "images", "menu", "loading.png"))
-
 head = Node([0, 0, 200, 200])
 head.split(-1)
 head.draw_paths()
@@ -46,6 +44,7 @@ brew = 6
 
 
 def generate_world():
+    en = False
     game.loading = True
     game.loading_progress = 0
     world.data = []
@@ -74,9 +73,11 @@ def generate_world():
                     interactive = Artifacts.ERLENMEYER_FLASK.to_world((x, y))
                     interactive.other_lambda = player.new_inventory_item
                     world.interactives[(x, y)] = interactive
-                if rand(1, 300) == 1:
+                if rand(1, 300) == 1 and not en:
                     enemy = Enemy(x, y)
+                    print(x, y)
                     world.enemies[(x, y)] = enemy
+                    en = True
                 # walls
                 if xo in (0, leaf.room[2] - 1) or yo in (0, leaf.room[3] - 1):
                     for zo in range(game.wall_height):
@@ -292,13 +293,18 @@ async def main(debug=False):
                 
                 for enemy in world.late_enemies:
                     enemy.update(player)
+                    print(enemy.last_x, enemy.last_y)
                     # take damage
                     if player.slashing:
                         if player.slash_rect.colliderect(enemy.srect):
                             if not enemy.taking_damage:
-                                enemy.take_damage(10, player.it)
-                                all_particles.append(DamageIndicator(10, True, enemy))
-                    break
+                                if enemy.hp - player.slash_damage > 0:
+                                    enemy.take_damage(player.slash_damage, player.it)
+                                    all_particles.append(DamageIndicator(10, True, enemy))
+                                else:
+                                    enemy.kill()
+                                    all_particles.append(DamageIndicator("KO!", True, enemy))
+                        break
                 for shadow in all_shadows:
                     shadow.update()
 
@@ -319,6 +325,8 @@ async def main(debug=False):
 
                 for particle in all_particles:
                     particle.update()
+                
+                write(display, "center", (int(player.x), int(player.y)), fonts[30], Colors.WHITE, player.srect.centerx, player.srect.top - 50)
 
                 write(
                     display,
