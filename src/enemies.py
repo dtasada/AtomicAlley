@@ -20,6 +20,7 @@ class Enemy(Smart):
         self.max_hp = self.hp
         self.last_movement = ticks()
         self.last_x, self.last_y = x, y
+        self.attacking = False
 
     def kill(self):
         del world.enemies[(self.last_x, self.last_y)]
@@ -58,8 +59,10 @@ class Enemy(Smart):
             self.yvel = sin(angle) * m
             self.vmult = 1
             self.last_movement = ticks()
-        if self.vmult <= 0.00001:
+            self.attacking = True
+        if self.vmult <= 0.2:
             self.vmult = 0
+            self.attacking = False
         self.xvel *= self.vmult
         self.x += self.xvel
         for cr in player.check_rects:
@@ -94,6 +97,7 @@ class Enemy(Smart):
             rect.center = self.srect.center
             pygame.draw.rect(display, self.color, rect)
             pygame.draw.rect(display, Colors.WHITE, rect, 2)
+            write(display, "midtop", "slime", fonts[20], Colors.WHITE, self.srect.centerx, self.srect.bottom + 10)
         else:
             display.blit(self.image, self.srect)
         # health

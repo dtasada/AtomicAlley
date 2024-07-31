@@ -51,7 +51,6 @@ class Atoms:
         [
             Property(Properties.DAMAGE, MagType.REL_COEF, +0.2),
             Property(Properties.MAX_HEALTH, MagType.REL_COEF, -0.2),
-            Property(Properties.IGNITE_CHANCE, MagType.REL_COEF, +0.05),
         ],
         (163, 0, 0),
     )
@@ -59,8 +58,6 @@ class Atoms:
     BISMUTH = Atom(
         AtomTypes.BISMUTH,
         [
-            Property(Properties.MUT_ALL_STATS, MagType.REL_COEF, +0.1),
-            Property(Properties.TRADE_FOR_CHOICES, MagType.SET_ABS, +2),
         ],
         (227, 171, 188),
     )
@@ -75,12 +72,14 @@ class Atoms:
         (0, 0, 80),
     )
 
-    OGANESSON = Atom(
-        AtomTypes.OGANESSON,
-        [Property(Properties.ULTIMATE, MagType.SET_ABS, 0.0)],
-        (10, 10, 10),
-        # TODO oganesson clor
-    )
+    # OGANESSON = Atom(
+    #     AtomTypes.OGANESSON,
+    #     [
+
+    #     ],
+    #     (10, 10, 10),
+    #     # TODO oganesson clor
+    # )
 
     OSMIUM = Atom(
         AtomTypes.OSMIUM,
@@ -91,9 +90,8 @@ class Atoms:
     SILICON = Atom(
         AtomTypes.SILICON,
         [
-            Property(Properties.HEALTH_REGEN, MagType.REL_COEF, +0.5),
             Property(Properties.MOVEMENT_SPEED, MagType.REL_COEF, -0.2),
-            Property(Properties.SIPHON, MagType.SET_ABS, 0.05),
+            Property(Properties.MAX_HEALTH, MagType.REL_COEF, +0.2)
         ],
         (254, 251, 234),
     )
@@ -102,8 +100,6 @@ class Atoms:
         AtomTypes.VANADIUM,
         [
             Property(Properties.CRIT_CHANCE, MagType.REL_COEF, +0.5),
-            Property(Properties.HOTBAR_SLOTS, MagType.REL_NUM, -1),
-            Property(Properties.DODGE_CHANCE, MagType.SET_ABS, 0.1),
             Property(Properties.MOVEMENT_SPEED, MagType.REL_COEF, -0.2),
         ],
         (0, 200, 0),

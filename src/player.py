@@ -19,8 +19,15 @@ class PlayerAbility:
 class Player(Smart):
     def __init__(self):
         # properties
-        self.slash_damage = 10
-        self.dash_damage = 5
+        self.OG_CRIT_CHANCE = 0.1
+        self.OG_DAMAGE = 10
+        self.OG_DASH_COOLDOWN = 1320
+        self.OG_DASH_DAMAGE = 5
+        self.OG_DASH_RANGE = 2
+        self.OG_MAX_HEALTH = 50
+        self.OG_MOVEMENT_SPEED = 0.08
+        #
+        self.update_properties()
         # rest
         self.mmrect = pygame.FRect((0, 0, 20, 20))
         self.wpos = (self.x, self.y)
@@ -116,10 +123,8 @@ class Player(Smart):
         self.dash_x = self.dash_y = 0
         self.dashing = False
         self.last_dash = ticks()
-        self.dash_time = 1320
         self.hotbar = [
             Artifacts.ARSENIC_FIZZ.to_hotbar(),
-            Artifacts.BISMUTH.to_hotbar(),
         ]
         self.inventory = [None for _ in range(16)]
         self.show_hotbar = False
@@ -136,9 +141,12 @@ class Player(Smart):
         self.show_abilities = False
         self.black_surf = pygame.Surface(display.get_size())
         self.black_surf.set_alpha(0)
+        self.red_surf = pygame.Surface(display.get_size())
+        self.red_surf.fill(Colors.RED)
+        self.red_surf.set_alpha(100)
         self.abilities = [
             PlayerAbility(PlayerAbilityTypes.SLASH, "Your basic weapon, your swinging bat.\nLeft click to use.\nUpgradable with tonics.", None),
-            PlayerAbility(PlayerAbilityTypes.DASH, "Dashes towards character direction.\nSpacebar to use.\nUpgradable with tonics.", "asd"),
+            PlayerAbility(PlayerAbilityTypes.DASH, "Dashes towards character direction.\nSpacebar to use.", None),
         ]
         self.black_stripe = pygame.Surface((display.get_width(), 500))
         self.black_stripe.set_alpha(120)
@@ -152,16 +160,25 @@ class Player(Smart):
         self.slashing = False
         self.slash_direc = None
         # hp
-        self.hp = 50
-        # self.health_sprs = [pygame.transform.scale_by(img, 0.8) for img in game.progress_bar_images]
+        self.hp = self.MAX_HEALTH
+        self.health_sprs = imgload("resources", "images", "player", "player_health.png", columns=15, scale=8)
+        self.health_rect = self.health_sprs[0].get_rect()
+        self.last_take_damage = ticks()
+        self.taking_damage = False
 
     def update(self):
+        self.update_properties()
         if game.state == States.PLAY and not game.dialogue:
             self.keys()
         self.draw()
 
         self.dpos = (self.blit_x, self.blit_y)
         self.wpos = (self.x, self.y)
+    
+    def take_damage(self, damage):
+        self.hp -= damage
+        self.last_take_damage = ticks()
+        self.taking_damage = True
     
     def new_inventory_item(self, item):
         if self.inventory.count(None) == 0:
@@ -186,7 +203,7 @@ class Player(Smart):
     def process_event(self, workbench_ui, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if ticks() - self.last_dash >= self.dash_time or True:
+                if ticks() - self.last_dash >= self.DASH_COOLDOWN:
                     self.dash()
 
             elif event.key == pygame.K_i:
@@ -233,10 +250,11 @@ class Player(Smart):
                             reagents=reagents,
                         ).to_hotbar()
                         self.hotbar.append(tonic)
+                        workbench_ui.glass = None
                         
     def keys(self):
         keys = pygame.key.get_pressed()
-        m = 0.08
+        m = self.MOVEMENT_SPEED
         left = right = top = bottom = False
         if keys[pygame.K_a]:
             self.animate_run = True
@@ -270,6 +288,13 @@ class Player(Smart):
                         self.mmrect.top = cr.bottom
             if it is not None:
                 self.it = it
+    
+    def damage_cooldown(self):
+        if self.taking_damage:
+            if ticks() - self.last_take_damage <= 200:
+                display.blit(self.red_surf, (0, 0))
+            if ticks() - self.last_take_damage >= 500:
+                self.taking_damage = False
 
     def render_hotbar(self):
         # hotbar
@@ -296,15 +321,16 @@ class Player(Smart):
                 *artifact.image.get_size(),
             )
             display.blit(artifact.image, artifact_rect)
+            # MULTS EVERYONE CALM DOWN
             if artifact_rect.collidepoint(pygame.mouse.get_pos()):
-                xor = pygame.mouse.get_pos()[0] + 5
-                yor = pygame.mouse.get_pos()[1] + 80
                 # xor and yor are the x and y origin, not the xor operator
+                xor = pygame.mouse.get_pos()[0] + 5  
+                yor = pygame.mouse.get_pos()[1] + 80
+                # multipliers (sorry)
                 y = 0
                 for atom in artifact.origin.reagents:
                     for prop in atom.properties:
-                        # print(x, prop.mag_type, prop.magnitude, prop.type)
-                        prop_text = "asd"
+                        prop_text = "Other secret ability"
                         if prop.mag_type == MagType.REL_COEF:
                             mag = (
                                 str(
@@ -314,10 +340,7 @@ class Player(Smart):
                                 )
                                 + "%"
                             )
-                            if prop.type == Properties.MUT_ALL_STATS:
-                                type_ = "on all stats"
-                            else:
-                                type_ = prop.type.name.lower().replace("_", " ")
+                            type_ = prop.type.name.lower().replace("_", " ")
                             prop_text = f"{mag} {type_}"
                         elif prop.mag_type == MagType.SET_ABS:
                             if prop.type == Properties.TRADE_FOR_CHOICES:
@@ -365,6 +388,28 @@ class Player(Smart):
                 self.black_surf.get_alpha() + (0 - self.black_surf.get_alpha()) * 0.2
             )
         
+    def update_properties(self):
+        # mults
+        for prop in Properties:
+            if prop.value != 7:
+                setattr(self, prop.name, getattr(self, "OG_" + prop.name))
+
+        mults = {p.name: 1 for p in Properties}
+        if not hasattr(self, "hotbar"):
+            return
+        for artifact in self.hotbar:
+            for atom in artifact.origin.reagents:
+                for prop in atom.properties:
+                    if prop.mag_type == MagType.REL_COEF:
+                        mults[prop.type.name] += prop.magnitude
+        for name, mult in mults.items():
+            try:
+                cur = getattr(self, name)
+            except AttributeError:
+                pass
+            setattr(self, name, cur * mult)
+        self.hp = min(self.hp, self.MAX_HEALTH)
+        
     def dash(self):
         self.dashing = True
         kwargs = {
@@ -380,7 +425,7 @@ class Player(Smart):
                 "topleft",
             )
         }
-        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=4)
+        xvel, yvel, _ = cart_dir_to_vel(**kwargs, m=self.DASH_RANGE)
         self.dash_x = self.x + xvel
         self.dash_y = self.y + yvel
         self.last_shadow = 0
@@ -427,9 +472,12 @@ class Player(Smart):
             self.image = self.images[self.weapon][self.it]
 
         display.blit(self.image, self.srect)
-        # display.blit(self.health_sprs[7], (100, 100))
+        self.health_rect.midbottom = (display.width / 2, display.height - 30)
+        index = int((1 - (self.hp / self.MAX_HEALTH)) * 15)
+        display.blit(self.health_sprs[index], self.health_rect)
+        write(display, "midbottom", f"max health: {self.MAX_HEALTH}", fonts[16], Colors.WHITE, display.width / 2, display.height - 4)
         #
-        if ticks() - self.last_dash >= self.dash_time:
+        if ticks() - self.last_dash >= self.DASH_COOLDOWN:
             p = Particle(self.srect.centerx, self.srect.top + 12)
             all_particles.append(p)
         # slashing
@@ -458,6 +506,7 @@ class Player(Smart):
                 self.slash_rect.center = center
                 display.blit(slash_img, self.slash_rect)
                 # pygame.draw.rect(display, Colors.WHITE, self.slash_rect, 5)
+        self.damage_cooldown()
 
     def get_dir_vector(self) -> v2:
         match self.it:
@@ -500,7 +549,8 @@ class PlayerShadow:
 
 
 class DamageIndicator:
-    def __init__(self, damage, nature, enemy):
+    def __init__(self, damage, nature, enemy, crit=False):
+        self.crit = crit
         self.damage = damage
         self.image = fonts[40].render(str(damage), True, Colors.WHITE if nature else Colors.RED)
         self.xo = rand(-40, 40)
@@ -514,8 +564,11 @@ class DamageIndicator:
         self.draw()
 
     def draw(self):
+        rgb_color = [(sin((ticks() * 0.01) + x) + 1) * 0.5 * 255 for x in range(3)]
+        if self.crit:
+            self.image = fonts[50].render(str(self.damage), True, rgb_color)
         if self.damage == "KO!":
-            self.image = fonts[50].render("KO!", True, [(sin((ticks() * 0.01) + x) + 1) * 0.5 * 255 for x in range(3)])
+            self.image = fonts[50].render("KO!", True, rgb_color)
         self.rect.center = (self.enemy.srect.centerx + self.xo, self.enemy.srect.top + self.yo)
         self.yo += self.yvel
         if ticks() - self.last_spawned >= 1000:

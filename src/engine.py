@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, List, Tuple
 from pathlib import Path
 from random import randint as rand, uniform as randf, choice
+import random
 from pprint import pprint
 
 
@@ -329,6 +330,7 @@ class States(Enum):
     MAIN_MENU = 0
     PLAY = 1
     SETTINGS = 2
+    END = 3
 
 
 class FontSize:
@@ -428,7 +430,7 @@ class Node:
         return [int(self.x + self.w / 2), int(self.y + self.h / 2)]
 
     def set_room_type(self):
-        room_type = rand(1, 5)
+        room_type = rand(1, 10)
         if room_type == 1:
             self.room_type = RoomType.BAR
         else:

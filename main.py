@@ -48,7 +48,13 @@ def generate_world():
     game.loading = True
     game.loading_progress = 0
     world.data = []
+    uttermost_value = float("inf")
+    uttermost_topleft = (0, 0)
     for leaf in head.get_leaves():
+        room_topleft = (leaf.room[0], leaf.room[1])
+        if room_topleft[0] + room_topleft[1] <= uttermost_value:
+            uttermost_topleft = room_topleft
+            uttermost_value = room_topleft[0] + room_topleft[1]
         for xo in range(leaf.room[2]):
             for yo in range(leaf.room[3]):
                 x, y = leaf.room[0] + xo, leaf.room[1] + yo
@@ -73,9 +79,8 @@ def generate_world():
                     interactive = Artifacts.ERLENMEYER_FLASK.to_world((x, y))
                     interactive.other_lambda = player.new_inventory_item
                     world.interactives[(x, y)] = interactive
-                if rand(1, 300) == 1 and not en:
+                if rand(1, 300) == 1 and (not en or True):
                     enemy = Enemy(x, y)
-                    print(x, y)
                     world.enemies[(x, y)] = enemy
                     en = True
                 # walls
@@ -83,43 +88,45 @@ def generate_world():
                     for zo in range(game.wall_height):
                         zo += 1
                         world.data.append(((leaf.room[0] + xo, leaf.room[1] + yo, zo), wall))
+    player.x, player.y = [p + 2 for p in uttermost_topleft]
+    do_corridors = True
+    if do_corridors:
+        for start, end in corridors:
+            if start[0] == end[0]:
+                # xs are equal, so vertical bar, so vary horizontally
+                y = start[1]
+                while y != end[1]:
+                    y += sign(end[1] - start[1])
+                    for o in range(-2, 3):
+                        # remove walls for entrance
+                        if ((start[0] + o, y, 1), wall) in world.data:
+                            for zo in range(game.wall_height):
+                                zo += 1
+                                world.data.remove(((start[0] + o, y, zo), wall))
+                        # invisible walls
+                        pass
+                        # make bridge
+                        world.try_modifying(((start[0] + o, y, 0), bridge))
+            elif start[1] == end[1]:
+                # ys are equal, so horizontal bar, so vary vertically
+                x = start[0]
+                while x != end[0]:
+                    x += sign(end[0] - start[0])
+                    for o in range(-2, 3):
+                        # remove walls for entrance
+                        if ((x, start[1] + o, 1), wall) in world.data:
+                            for zo in range(game.wall_height):
+                                zo += 1
+                                world.data.remove(((x, start[1] + o, zo), wall))
+                        # invisible walls
+                        pass
+                        # make bridge
+                        world.try_modifying(((x, start[1] + o, 0), bridge))
 
-    # for start, end in corridors:
-    #     if start[0] == end[0]:
-    #         # xs are equal, so vertical bar, so vary horizontally
-    #         y = start[1]
-    #         while y != end[1]:
-    #             y += sign(end[1] - start[1])
-    #             for o in range(-2, 3):
-    #                 # remove walls for entrance
-    #                 if ((start[0] + o, y, 1), wall) in world.data:
-    #                     for zo in range(game.wall_height):
-    #                         zo += 1
-    #                         world.data.remove(((start[0] + o, y, zo), wall))
-    #                 # invisible walls
-    #                 pass
-    #                 # make bridge
-    #                 world.try_modifying(((start[0] + o, y, 0), bridge))
-    #     elif start[1] == end[1]:
-    #         # ys are equal, so horizontal bar, so vary vertically
-    #         x = start[0]
-    #         while x != end[0]:
-    #             x += sign(end[0] - start[0])
-    #             for o in range(-2, 3):
-    #                 # remove walls for entrance
-    #                 if ((x, start[1] + o, 1), wall) in world.data:
-    #                     for zo in range(game.wall_height):
-    #                         zo += 1
-    #                         world.data.remove(((x, start[1] + o, zo), wall))
-    #                 # invisible walls
-    #                 pass
-    #                 # make bridge
-    #                 world.try_modifying(((x, start[1] + o, 0), bridge))
-
-    #     game.loading_progress += 1 / len(corridors)
-    #     game.progress_bar_image = game.progress_bar_images[
-    #         min(floor(len(game.progress_bar_images) * game.loading_progress), 10)
-    #     ]  # using min bc sometimes index gets to 11? lol skil isue
+            game.loading_progress += 1 / len(corridors)
+            game.progress_bar_image = game.progress_bar_images[
+                min(floor(len(game.progress_bar_images) * game.loading_progress), 10)
+            ]  # using min bc sometimes index gets to 11? lol skil isue
 
     # sort the list (use z-buffering)
     world.data.sort(key=lambda x: (x[0][2], x[0][0], x[0][1]))
@@ -161,7 +168,7 @@ async def main(debug=False):
     game.set_state(States.MAIN_MENU)
 
     if not debug or True:
-        game.dialogue = Dialogue("Press <i> to show hotbar & inventory\nPress <o> to show abilities", "Game")
+        game.dialogue = Dialogue("Press <i> to show hotbar & inventory\nPress <o> to show abilities\nKill the slimes as fast as possible while upgrading.\nWatch out they can dodge", "Dexter Dalton")
 
     while game.running:
         game.late_events = []
@@ -184,18 +191,22 @@ async def main(debug=False):
                     sys.exit()
 
                 case pygame.KEYDOWN:
+                    if event.key == pygame.K_3:
+                        player.hp -= 1
+
                     if game.state == States.MAIN_MENU:
                         if event.key == pygame.K_z:
                             show_any_key = False
                             Thread(target=generate_world, daemon=True).start()
-
+                        
                     if event.key == pygame.K_ESCAPE:
                         match game.state:
                             case States.PLAY:
                                 if workbench_ui.enabled:
                                     workbench_ui.disable()
                                 else:
-                                    game.set_state(States.MAIN_MENU)
+                                    pass
+                                    # game.set_state(States.MAIN_MENU)
                             case States.MAIN_MENU:
                                 game.set_state(States.PLAY)
                     
@@ -289,22 +300,34 @@ async def main(debug=False):
                         interactive.focused = False
                     interactive.update()
                     for event in game.late_events:
-                        interactive.process_event(event)
+                        if interactive.focused:
+                            interactive.process_event(event)
                 
                 for enemy in world.late_enemies:
                     enemy.update(player)
-                    print(enemy.last_x, enemy.last_y)
                     # take damage
                     if player.slashing:
                         if player.slash_rect.colliderect(enemy.srect):
                             if not enemy.taking_damage:
-                                if enemy.hp - player.slash_damage > 0:
-                                    enemy.take_damage(player.slash_damage, player.it)
-                                    all_particles.append(DamageIndicator(10, True, enemy))
+                                damage = player.DAMAGE
+                                crit = False
+                                if random.random() <= player.CRIT_CHANCE:
+                                    damage *= 5
+                                    crit = True
+                                if enemy.hp - damage > 0:
+                                    enemy.take_damage(damage, player.it)
+                                    all_particles.append(DamageIndicator(10, True, enemy, crit))
                                 else:
                                     enemy.kill()
                                     all_particles.append(DamageIndicator("KO!", True, enemy))
+                                    if not world.enemies:
+                                        game.state = States.END
                         break
+                    # enemy does damage
+                    if enemy.attacking:
+                        if player.srect.colliderect(enemy.srect):
+                            if not player.taking_damage:
+                                player.take_damage(10)
                 for shadow in all_shadows:
                     shadow.update()
 
@@ -350,9 +373,9 @@ async def main(debug=False):
                         if rect.collidepoint(pygame.mouse.get_pos()):
                             text = ability.text
                             if ability.type_ == PlayerAbilityTypes.SLASH:
-                                text += f"\nCurrent damage: {player.slash_damage}"
+                                text += f"\nCurrent damage: {player.DAMAGE}"
                             elif ability.type_ == PlayerAbilityTypes.DASH:
-                                text += f"\nCurrent damage: {player.dash_damage}"
+                                pass
                             write(display, "midtop", text, fonts[30], Colors.WHITE, text_x, text_y)
 
                 for state, array in buttons.items():
@@ -366,6 +389,10 @@ async def main(debug=False):
                             game.dialogue.process_event(event)
                     if game.dialogue is not None:
                         game.dialogue.update()
+            
+            case States.END:
+                display.fill((230, 124, 232))
+                write(display, "center", "You win!", fonts[90], Colors.WHITE, display.width / 2, display.height / 2)
 
         if game.screen_shake_mult > 0:
             game.screen_shake_offset = [

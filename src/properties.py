@@ -14,19 +14,9 @@ class Properties(Enum):
     DASH_COOLDOWN = 2
     DASH_DAMAGE = 3
     DASH_RANGE = 4
-    DODGE_CHANCE = 5
-    HEALTH_REGEN = 6
-    HEALTH = 7
-    HOTBAR_SLOTS = 8
-    IGNITE_CHANCE = 9
-    MAX_HEALTH = 10
-    MOVEMENT_SPEED = 11
-    MUT_ALL_STATS = 12
-    NONE = 13
-    SHIELD = 14
-    SIPHON = 15
-    TRADE_FOR_CHOICES = 16
-    ULTIMATE = 17
+    MAX_HEALTH = 5
+    MOVEMENT_SPEED = 6
+    NONE = 7
 
 
 class Property:

@@ -174,19 +174,9 @@ class Artifacts:
         imgload("resources", "images", "artifacts", "tonic.png"),
         "Tonic of Life",
         properties=[
-            Property(Properties.HEALTH, MagType.SET_COEF, 1.0),
             Property(Properties.MAX_HEALTH, MagType.SET_COEF, 1.5),
         ],
         color=Colors.GREEN,
     )
 
-    KERNEL_OF_IDEOLOGY = Artifact(
-        ArtifactType.KERNEL,
-        imgload("resources", "images", "artifacts", "kernel.png"),
-        "Kernel of Ideology",
-        properties=[
-            Property(Properties.DODGE_CHANCE, MagType.REL_NUM, +0.1),
-            Property(Properties.TRADE_FOR_CHOICES, MagType.SET_ABS, 2),
-        ],
-        color=Colors.GREEN,
-    )
+

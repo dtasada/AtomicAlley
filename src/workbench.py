@@ -35,7 +35,7 @@ class WorkBenchUI:
             self.text_rect = self.text_image.get_rect()
             self.selected = False
             # shadow
-            self.shadow = rand(1, 1) == 1
+            self.shadow = rand(1, 1) == 0
             self.shadow_image = self.image.copy()
             for y in range(self.shadow_image.get_height()):
                 for x in range(self.shadow_image.get_width()):
@@ -181,7 +181,7 @@ class WorkBenchUI:
             display, Colors.WHITE, self.master_rect, 2, border_radius=BORDER_RADIUS
         )
         # helping information
-        write(display, "topleft", "you can also drop items from your inventory", fonts[16], Colors.WHITE, self.master_rect.x + 8, self.master_rect.y + 6)
+        write(display, "topleft", "you can drop items from your inventory", fonts[16], Colors.WHITE, self.master_rect.x + 8, self.master_rect.y + 6)
 
         # render the items on the grid
         self.selected_index = 0
