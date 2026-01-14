@@ -1,6 +1,5 @@
 package main
 
-import "core:fmt"
 import "core:math/rand"
 import "core:path/slashpath"
 import "core:strings"
@@ -25,6 +24,12 @@ Game :: struct {
 	state:        State,
 	camera:       rl.Camera3D,
 	world:        engine.World,
+	player:       Player,
+}
+
+Player :: struct {
+	position: rl.Vector3,
+	speed:    rl.Vector2,
 }
 
 game_init :: proc() -> (game: Game) {
@@ -33,6 +38,7 @@ game_init :: proc() -> (game: Game) {
 
 	rl.InitWindow(width, height, "Atomic Alley")
 	rl.InitAudioDevice()
+	rl.SetTargetFPS(60)
 
 	game = Game {
 		screen = {width = width, height = height},
@@ -52,16 +58,16 @@ game_init :: proc() -> (game: Game) {
 		),
 		state = .TITLE,
 		camera = rl.Camera3D {
-			position = rl.Vector3(48),
-			target = rl.Vector3(0),
+			position = {-64, 64, -64},
+			target = {64, 0, 64},
 			up = {0, 1, 0},
 			fovy = 60,
 			projection = .ORTHOGRAPHIC,
 		},
-		world = engine.world_init({32, 32}),
+		world = engine.world_init({128, 128}),
+		player = {position = {-64, 0, -64}, speed = {0.5, 0.5}},
 	}
 
-	rl.SetTargetFPS(60)
 	rl.PlaySound(game.title_music)
 
 	return
@@ -70,7 +76,6 @@ game_init :: proc() -> (game: Game) {
 game_deinit :: proc(self: ^Game) {
 	engine.texture_deinit(&self.title_screen)
 	rl.UnloadSound(self.title_music)
-
 	rl.CloseWindow()
 }
 
@@ -110,6 +115,14 @@ game_loop :: proc(self: ^Game) {
 
 		case .IN_GAME:
 			rl.BeginMode3D(self.camera)
+
+			if rl.IsKeyDown(.W) do rl.CameraMoveForward(&self.camera, self.player.speed.y, true)
+			if rl.IsKeyDown(.A) do rl.CameraMoveRight(&self.camera, -self.player.speed.x, true)
+			if rl.IsKeyDown(.S) do rl.CameraMoveForward(&self.camera, -self.player.speed.y, true)
+			if rl.IsKeyDown(.D) do rl.CameraMoveRight(&self.camera, self.player.speed.x, true)
+
+			self.player.position = self.camera.target
+			rl.DrawSphere(self.player.position, 1, rl.RED)
 
 			draw_node(&self.world.root_node)
 
@@ -160,7 +173,6 @@ font: rl.Font
 main :: proc() {
 	game := game_init()
 	defer game_deinit(&game)
-
 
 	font = rl.LoadFont(
 		strings.clone_to_cstring(

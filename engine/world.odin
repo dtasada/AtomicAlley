@@ -20,7 +20,7 @@ Node :: struct {
 	paths:   [dynamic]Rect,
 }
 
-MIN_LEAF_SIZE: u32 : 8
+MIN_LEAF_SIZE: u32 : 16
 
 // `tiles` is the resolution of the world measured in tiles
 world_init :: proc(resolution: [2]u32) -> World {
