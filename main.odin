@@ -125,6 +125,14 @@ game_loop :: proc(self: ^Game) {
 draw_node :: proc(node: ^engine.Node) {
 	if node == nil do return
 
+	for path in node.paths {
+		rl.DrawPlane(
+			{f32(path.x) + f32(path.w) / 2, 0, f32(path.y) + f32(path.h) / 2},
+			{f32(path.w), f32(path.h)},
+			rl.GRAY,
+		)
+	}
+
 	switch c in node.content {
 	case [2]^engine.Node:
 		draw_node(c[0])
