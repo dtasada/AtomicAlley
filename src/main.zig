@@ -184,11 +184,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
-    prng = .init(blk: {
-        var seed: u64 = undefined;
-        std.posix.getrandom(std.mem.asBytes(&seed)) catch {};
-        break :blk seed;
-    });
+    prng = .init(undefined);
     rand = prng.random();
 
     var game: Game = try .init(alloc);
