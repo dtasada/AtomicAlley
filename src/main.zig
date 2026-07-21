@@ -29,8 +29,11 @@ const Game = struct {
     camera: rl.Camera3D,
     world: World,
     player: Player,
+    prng: std.Random.DefaultPrng,
+    rand: std.Random,
+    font: rl.Font,
 
-    fn init(alloc: std.mem.Allocator) !Game {
+    fn init(gpa: std.mem.Allocator) !*Game {
         const width: i32 = 1280;
         const height: i32 = 720;
 
@@ -38,10 +41,14 @@ const Game = struct {
         rl.initAudioDevice();
         rl.setTargetFPS(60);
 
-        const game: Game = .{
+        const font_path = try std.fs.path.joinZ(gpa, &.{ "resources", "fonts", "Chicago.ttf" });
+        defer gpa.free(font_path);
+
+        const game = try gpa.create(Game);
+        game.* = .{
             .screen = .{ .width = width, .height = height },
             .title_screen = try .init(
-                alloc,
+                gpa,
                 &.{
                     &.{ "resources", "images", "menu", "title0.png" },
                     &.{ "resources", "images", "menu", "title1.png" },
@@ -50,8 +57,8 @@ const Game = struct {
                 height,
             ),
             .title_music = b: {
-                const sound_path = try std.fs.path.joinZ(alloc, &.{ "resources", "sfx", "MainMenuMusic.mp3" });
-                defer alloc.free(sound_path);
+                const sound_path = try std.fs.path.joinZ(gpa, &.{ "resources", "sfx", "MainMenuMusic.mp3" });
+                defer gpa.free(sound_path);
                 break :b try rl.loadSound(sound_path);
             },
             .state = .title,
@@ -62,20 +69,29 @@ const Game = struct {
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .world = try .init(alloc, .{ 64, 64 }),
             .player = .{ .position = .init(-64, 0, -64), .speed = .init(0.5, 0.5) },
+            .prng = .init(@intFromFloat(rl.getTime() * 1000)),
+            .world = undefined,
+            .rand = undefined,
+            .font = try .init(font_path),
         };
+
+        game.rand = game.prng.random();
+        game.world = try .init(gpa, game.rand, .{ 64, 64 });
 
         rl.playSound(game.title_music);
 
         return game;
     }
 
-    fn deinit(self: *Game, alloc: std.mem.Allocator) void {
-        self.title_screen.deinit(alloc);
+    /// Destroys `self` pointer as well.
+    fn deinit(self: *Game, gpa: std.mem.Allocator) void {
+        self.title_screen.deinit(gpa);
         self.title_music.unload();
-        self.world.deinit(alloc);
+        self.world.deinit(gpa);
+        self.font.unload();
         rl.closeWindow();
+        gpa.destroy(self);
     }
 
     fn loop(self: *Game) void {
@@ -87,19 +103,19 @@ const Game = struct {
 
             switch (self.state) {
                 .title => {
-                    if (rand.intRangeAtMost(u8, 0, 100) >= 94)
+                    if (self.rand.intRangeAtMost(u8, 0, 100) >= 94)
                         self.title_screen.frames.items[1].draw(0, 0, .white)
                     else
                         self.title_screen.frames.items[0].draw(0, 0, .white);
 
                     const text_size = rl.measureTextEx(
-                        font,
+                        self.font,
                         "press <SPACE> to continue",
                         @intFromEnum(engine.FontSize.title),
                         0.0,
                     );
                     rl.drawTextEx(
-                        font,
+                        self.font,
                         "press <SPACE> to continue",
                         .init(
                             @as(f32, @floatFromInt(self.screen.width)) / 2.0 - text_size.x / 2.0,
@@ -175,26 +191,13 @@ fn drawNode(node: *World.Node) void {
     }
 }
 
-var font: rl.Font = undefined;
-
-var prng: std.Random.DefaultPrng = undefined;
-pub var rand: std.Random = undefined;
-
 pub fn main() !void {
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
     defer _ = debug_allocator.deinit();
     const gpa = debug_allocator.allocator();
 
-    prng = .init(undefined);
-    rand = prng.random();
-
-    var game: Game = try .init(gpa);
+    var game: *Game = try .init(gpa);
     defer game.deinit(gpa);
-
-    const font_path = try std.fs.path.joinZ(gpa, &.{ "resources", "fonts", "Chicago.ttf" });
-    defer gpa.free(font_path);
-    font = try .init(font_path);
-    defer font.unload();
 
     const atom_images = try utils.imageLoadRow(gpa, &.{ "resources", "images", "atoms", "atoms.png" }, 7, 1.0);
     defer gpa.free(atom_images);
