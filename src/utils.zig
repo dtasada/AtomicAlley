@@ -34,19 +34,23 @@ pub fn imageLoadGrid(
     }
 }
 
-pub fn imageLoadRow(gpa: std.mem.Allocator, path: []const u8, columns: usize, scale: f32) []rl.Texture {
-    var image = try rl.loadImage(path);
-    image.resize(image.width * scale, image.height * scale);
+pub fn imageLoadRow(gpa: std.mem.Allocator, path: []const []const u8, columns: usize, scale: f32) ![]rl.Texture {
+    const path_str = try std.fs.path.joinZ(gpa, path);
+    defer gpa.free(path_str);
+    var image = try rl.loadImage(path_str);
+    image.resize(
+        @intFromFloat(@as(f32, @floatFromInt(image.width)) * scale),
+        @intFromFloat(@as(f32, @floatFromInt(image.height)) * scale),
+    );
 
-    const frame_width = image.width / columns;
-
-    const ret = try gpa.alloc(rl.Texture, frame_width);
+    const frame_width = @as(usize, @intCast(image.width)) / columns;
+    const ret = try gpa.alloc(rl.Texture, columns);
     for (0..columns) |i|
-        ret[i] = image.copyRec(.init(
-            i * frame_width,
+        ret[i] = try image.copyRec(.init(
+            @floatFromInt(i * frame_width),
             0,
-            frame_width,
-            image.height,
+            @floatFromInt(frame_width),
+            @floatFromInt(image.height),
         )).toTexture();
 
     return ret;

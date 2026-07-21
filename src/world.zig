@@ -124,19 +124,15 @@ fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
         const h: f32 = @floatFromInt(rect.h);
         node.content = .{
             .leaf = .{
-                // @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
-                // @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
-                @intFromFloat(0.8 * w), @intFromFloat(0.8 * h),
+                @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
+                @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
             },
         };
         return node;
     }
 
-    var split_vertical: bool = undefined;
-    split_vertical = if (rect.w > rect.h) true else if (rect.h > rect.w) false else main.rand.boolean();
-
     const min = MIN_LEAF_SIZE;
-    if (split_vertical) {
+    if (rect.w > rect.h or rect.w == rect.h and main.rand.boolean()) {
         const max = rect.w - MIN_LEAF_SIZE;
         if (min >= max) {
             const w: f32 = @floatFromInt(rect.w);
