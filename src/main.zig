@@ -62,7 +62,7 @@ const Game = struct {
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .world = try .init(alloc, .{ 1024, 1024 }),
+            .world = try .init(alloc, .{ 64, 64 }),
             .player = .{ .position = .init(-64, 0, -64), .speed = .init(0.5, 0.5) },
         };
 
@@ -137,50 +137,39 @@ const Game = struct {
 };
 
 fn drawNode(node: *World.Node) void {
-    for (node.paths.items) |path| {
-        rl.drawPlane(
-            .init(
-                @as(f32, @floatFromInt(path.x)) + @as(f32, @floatFromInt(path.w)) / 2.0,
-                0.1,
-                @as(f32, @floatFromInt(path.y)) + @as(f32, @floatFromInt(path.h)) / 2.0,
-            ),
-            .init(@floatFromInt(path.w), @floatFromInt(path.h)),
-            .gray,
-        );
-    }
-
     switch (node.content) {
         .children => |c| {
             drawNode(c[0]);
             drawNode(c[1]);
         },
-        .leaf => |c| {
-            var prng_ = std.Random.DefaultPrng.init(@intFromPtr(&c));
-            const rand_ = prng_.random();
-            const color: rl.Color = .init(
-                rand_.intRangeAtMost(u8, 0, 255),
-                rand_.intRangeAtMost(u8, 0, 255),
-                rand_.intRangeAtMost(u8, 0, 255),
-                255,
+        .leaf => |inner| {
+            // rect borders
+            const color: rl.Color = .init(0, 240, 0, 255);
+            const w: f32 = node.rect.width;
+            const h: f32 = node.rect.height;
+            const center: rl.Vector3 = .init(
+                node.rect.x + node.rect.width / 2,
+                0,
+                node.rect.y + node.rect.height / 2,
             );
+            const p1: rl.Vector3 = .init(center.x - w / 2, center.y, center.z - h / 2);
+            const p2: rl.Vector3 = .init(center.x + w / 2, center.y, center.z - h / 2);
+            const p3: rl.Vector3 = .init(center.x + w / 2, center.y, center.z + h / 2);
+            const p4: rl.Vector3 = .init(center.x - w / 2, center.y, center.z + h / 2);
+            rl.drawLine3D(p1, p2, color);
+            rl.drawLine3D(p2, p3, color);
+            rl.drawLine3D(p3, p4, color);
+            rl.drawLine3D(p4, p1, color);
 
+            // plane itself
             rl.drawPlane(
                 .init(
-                    @as(f32, @floatFromInt(node.rect.x)) + @as(f32, @floatFromInt(node.rect.w)) / 2.0,
-                    -0.1,
-                    @as(f32, @floatFromInt(node.rect.y)) + @as(f32, @floatFromInt(node.rect.h)) / 2,
-                ),
-                .init(@floatFromInt(node.rect.w), @floatFromInt(node.rect.h)),
-                color.brightness(-0.4).fade(0.6),
-            );
-            rl.drawPlane(
-                .init(
-                    @as(f32, @floatFromInt(node.rect.x)) + @as(f32, @floatFromInt(node.rect.w)) / 2.0,
+                    inner.x + inner.width / 2,
                     0.0,
-                    @as(f32, @floatFromInt(node.rect.y)) + @as(f32, @floatFromInt(node.rect.h)) / 2,
+                    inner.y + inner.height / 2,
                 ),
-                .init(@floatFromInt(c[0]), @floatFromInt(c[1])),
-                color,
+                .init(inner.width, inner.height),
+                node.color,
             );
         },
     }
@@ -212,27 +201,27 @@ pub fn main() !void {
     @memcpy(&objects.atom_images.values, atom_images);
 
     objects.atoms = .init(.{
-        .argon = .initComptime(
+        .argon = .initBuiltin(
             .argon,
             "Argon",
             &.{.init(.none, .set_abs, 0.0)},
             .init(50, 50, 50, 255),
         ),
-        .arsenic = .initComptime(.arsenic, "Arsenic", &.{
+        .arsenic = .initBuiltin(.arsenic, "Arsenic", &.{
             .init(.damage, .rel_coef, 0.2),
             .init(.max_health, .rel_coef, -0.2),
         }, .init(163, 0, 0, 255)),
-        .krypton = .initComptime(.krypton, "Krypton", &.{
+        .krypton = .initBuiltin(.krypton, "Krypton", &.{
             .init(.dash_cooldown, .rel_coef, -0.5),
             .init(.dash_range, .rel_coef, 1.0),
         }, .init(0, 0, 80, 255)),
-        .oganesson = .initComptime(.oganesson, "Oganesson", &.{}, .init(255, 255, 255, 255)),
-        .osmium = .initComptime(.osmium, "Osmium", &.{.init(.none, .set_abs, 0.0)}, .init(50, 50, 50, 255)),
-        .silicon = .initComptime(.silicon, "Silicon", &.{
+        .oganesson = .initBuiltin(.oganesson, "Oganesson", &.{}, .init(255, 255, 255, 255)),
+        .osmium = .initBuiltin(.osmium, "Osmium", &.{.init(.none, .set_abs, 0.0)}, .init(50, 50, 50, 255)),
+        .silicon = .initBuiltin(.silicon, "Silicon", &.{
             .init(.movement_speed, .rel_coef, -0.2),
             .init(.max_health, .rel_coef, 0.2),
         }, .init(254, 251, 234, 255)),
-        .vanadium = .initComptime(.vanadium, "Vanadium", &.{
+        .vanadium = .initBuiltin(.vanadium, "Vanadium", &.{
             .init(.crit_change, .rel_coef, 0.5),
             .init(.movement_speed, .rel_coef, -0.2),
         }, .init(0, 200, 0, 255)),

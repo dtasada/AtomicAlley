@@ -1,5 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
+const utils = @import("utils.zig");
 
 const World = @This();
 
@@ -11,9 +12,19 @@ root_node: *Node,
 // `tiles` is the resolution of the world measured in tiles
 pub fn init(alloc: std.mem.Allocator, resolution: [2]u32) !World {
     const world: World = .{
-        .root_node = try genNode(alloc, .init(0, 0, resolution[0], resolution[1])),
+        .tiles = .empty,
+        .root_node = try genNode(
+            alloc,
+            .init(
+                0,
+                0,
+                @floatFromInt(resolution[0]),
+                @floatFromInt(resolution[1]),
+            ),
+            20,
+        ),
     };
-    _ = try createCorridors(alloc, world.root_node);
+    // _ = try genCorridors(alloc, world.root_node);
     return world;
 }
 
@@ -27,29 +38,14 @@ pub const Tile = struct {
     index: usize,
 };
 
-const Rect = struct {
-    x: u32,
-    y: u32,
-    w: u32,
-    h: u32,
-
-    pub fn init(x: u32, y: u32, w: u32, h: u32) Rect {
-        return .{
-            .x = x,
-            .y = y,
-            .w = w,
-            .h = h,
-        };
-    }
-};
-
 pub const Node = struct {
-    rect: Rect,
+    rect: rl.Rectangle,
     content: union(enum) {
         children: [2]*Node,
-        leaf: [2]u32,
+        leaf: rl.Rectangle,
     },
-    paths: std.ArrayList(Rect),
+    paths: std.ArrayList(rl.Rectangle),
+    color: rl.Color,
 
     fn deinit(self: *Node, alloc: std.mem.Allocator) void {
         self.paths.deinit(alloc);
@@ -66,19 +62,19 @@ pub const Node = struct {
     }
 };
 
-const MIN_LEAF_SIZE: u32 = 16;
+const MIN_LEAF_SIZE: f32 = 16;
 
-fn createCorridors(alloc: std.mem.Allocator, node: *Node) !Rect {
+fn genCorridors(alloc: std.mem.Allocator, node: *Node) !rl.Rectangle {
     switch (node.content) {
         .leaf => |size| {
-            const x = node.rect.x + (node.rect.w - size[0]) / 2;
-            const y = node.rect.y + (node.rect.h - size[1]) / 2;
+            const x = node.rect.x + (node.rect.width - size[0]) / 2;
+            const y = node.rect.y + (node.rect.height - size[1]) / 2;
             return .init(x, y, size[0], size[1]);
         },
 
         .children => |c| {
-            const left = try createCorridors(alloc, c[0]);
-            const right = try createCorridors(alloc, c[1]);
+            const left = try genCorridors(alloc, c[0]);
+            const right = try genCorridors(alloc, c[1]);
 
             const cx1 = left.x + left.w / 2;
             const cy1 = left.y + left.h / 2;
@@ -120,72 +116,85 @@ fn createCorridors(alloc: std.mem.Allocator, node: *Node) !Rect {
     }
 }
 
-fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
+fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*Node {
     var node = try alloc.create(Node);
+    node.color = .init(
+        main.rand.int(u8),
+        main.rand.int(u8),
+        main.rand.int(u8),
+        255,
+    );
     node.rect = rect;
     node.paths = .empty;
 
-    // stop splitting if too small, return leaf
-    if (rect.w < MIN_LEAF_SIZE * 2 or rect.h < MIN_LEAF_SIZE * 2) {
-        const w: f32 = @floatFromInt(rect.w);
-        const h: f32 = @floatFromInt(rect.h);
+    // precondition: node rect size (width and height) is both > MIN_LEAF_SIZE
+    std.debug.assert(node.rect.width >= MIN_LEAF_SIZE);
+    std.debug.assert(node.rect.height >= MIN_LEAF_SIZE);
+
+    // horizontally means the products are in the x-axis
+    const splits_horizontally = main.rand.boolean();
+
+    var split1: rl.Rectangle = undefined;
+    var split2: rl.Rectangle = undefined;
+    const split_range: rl.Vector2 = .init(0.7, 0.9);
+
+    // check whether current node is too small to split
+    const split_axis = if (splits_horizontally) node.rect.width else node.rect.height;
+    if (split_axis < 2 * MIN_LEAF_SIZE) {
+        // create an inner rectangle which is a bit smaller
+        const inner_w = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.width;
+        const inner_h = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.height;
+        const inner_x = utils.floatB(main.rand, node.rect.x, node.rect.x + node.rect.width - inner_w);
+        const inner_y = utils.floatB(main.rand, node.rect.y, node.rect.y + node.rect.height - inner_h);
         node.content = .{
-            .leaf = .{
-                // interval: [0.4, 0.6)
-                @intFromFloat((0.4 + main.rand.float(f32) / 5) * w),
-                @intFromFloat((0.4 + main.rand.float(f32) / 5) * h),
-            },
+            .leaf = .init(inner_x, inner_y, inner_w, inner_h),
         };
         return node;
     }
 
-    const min = MIN_LEAF_SIZE;
-    if (rect.w > rect.h or rect.w == rect.h and main.rand.boolean()) {
-        const max = rect.w - MIN_LEAF_SIZE;
-        if (min >= max) {
-            const w: f32 = @floatFromInt(rect.w);
-            const h: f32 = @floatFromInt(rect.h);
-            node.content = .{
-                .leaf = .{
-                    @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
-                    @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
-                },
-            };
-            return node;
-        }
-
-        const split = main.rand.intRangeAtMost(u32, min, max);
-
-        node.content = .{
-            .children = .{
-                try genNode(alloc, .init(rect.x, rect.y, split, rect.h)),
-                try genNode(alloc, .init(rect.x + split, rect.y, rect.w - split, rect.h)),
-            },
-        };
+    // can split yaay!!
+    if (splits_horizontally) {
+        // we can only split if our size is at least 2 * MIN_LEAF_SIZE
+        const split_min_x = MIN_LEAF_SIZE;
+        const split_max_x = node.rect.width - MIN_LEAF_SIZE;
+        const split_x = utils.floatB(main.rand, split_min_x, split_max_x);
+        split1 = .init(
+            node.rect.x,
+            node.rect.y,
+            split_x,
+            node.rect.height,
+        );
+        split2 = .init(
+            node.rect.x + split_x,
+            node.rect.y,
+            node.rect.width - split_x,
+            node.rect.height,
+        );
     } else {
-        const max = rect.h - MIN_LEAF_SIZE;
-        if (min >= max) {
-            const w: f32 = @floatFromInt(rect.w);
-            const h: f32 = @floatFromInt(rect.h);
-            node.content = .{
-                .leaf = .{
-                    @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
-                    @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
-                },
-            };
-            return node;
-        }
-
-        // split horizontal instead
-        const split = main.rand.intRangeAtMost(u32, min, max);
-
-        node.content = .{
-            .children = .{
-                try genNode(alloc, .init(rect.x, rect.y, rect.w, split)),
-                try genNode(alloc, .init(rect.x, rect.y + split, rect.w, rect.h - split)),
-            },
-        };
+        const split_min_y = MIN_LEAF_SIZE;
+        const split_max_y = node.rect.height - MIN_LEAF_SIZE;
+        const split_y = utils.floatB(main.rand, split_min_y, split_max_y);
+        split1 = .init(
+            node.rect.x,
+            node.rect.y,
+            node.rect.width,
+            split_y,
+        );
+        split2 = .init(
+            node.rect.x,
+            node.rect.y + split_y,
+            node.rect.width,
+            node.rect.height - split_y,
+        );
     }
+
+    // create the two nodes
+    node.content = .{
+        .children = .{
+            try genNode(alloc, split1, max_leaves),
+            try genNode(alloc, split2, max_leaves),
+        },
+    };
 
     return node;
 }

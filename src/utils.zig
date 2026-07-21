@@ -1,6 +1,11 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+// floatBetween
+pub fn floatB(rand: std.Random, a: f32, b: f32) f32 {
+    return a + rand.float(f32) * (b - a);
+}
+
 pub fn imageLoadGrid(
     gpa: std.mem.Allocaotr,
     path: []const []const u8,
