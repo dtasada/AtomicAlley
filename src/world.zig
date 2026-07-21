@@ -124,8 +124,9 @@ fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
         const h: f32 = @floatFromInt(rect.h);
         node.content = .{
             .leaf = .{
-                @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
-                @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
+                // @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
+                // @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
+                @intFromFloat(0.8 * w), @intFromFloat(0.8 * h),
             },
         };
         return node;

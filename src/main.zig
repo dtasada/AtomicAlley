@@ -3,6 +3,8 @@ const rl = @import("raylib");
 const engine = @import("engine.zig");
 const World = @import("world.zig");
 const rcamera = @import("rcamera.zig");
+// const objects = @import("objects.zig");
+// const utils = @import("utils.zig");
 
 const State = enum {
     title,
@@ -60,7 +62,7 @@ const Game = struct {
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .world = try .init(alloc, .{ 128, 128 }),
+            .world = try .init(alloc, .{ 1024, 1024 }),
             .player = .{ .position = .init(-64, 0, -64), .speed = .init(0.5, 0.5) },
         };
 
@@ -80,6 +82,7 @@ const Game = struct {
         while (!rl.windowShouldClose()) {
             rl.clearBackground(.black);
 
+            self.camera.update(.third_person);
             rl.beginDrawing();
 
             switch (self.state) {
@@ -194,6 +197,9 @@ pub fn main() !void {
     defer alloc.free(font_path);
     font = try .init(font_path);
     defer font.unload();
+
+    // objects.atoms = .init(init_values: (unknown type))
+    // objects.atom_images = try utils.imageLoadRow(gpa, &.{ "resources", "images", "atoms", "atoms.png" }, 7, 1.0);
 
     game.loop();
 }
