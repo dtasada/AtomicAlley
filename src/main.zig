@@ -141,7 +141,7 @@ fn drawNode(node: *World.Node) void {
         rl.drawPlane(
             .init(
                 @as(f32, @floatFromInt(path.x)) + @as(f32, @floatFromInt(path.w)) / 2.0,
-                0,
+                0.1,
                 @as(f32, @floatFromInt(path.y)) + @as(f32, @floatFromInt(path.h)) / 2.0,
             ),
             .init(@floatFromInt(path.w), @floatFromInt(path.h)),
@@ -164,6 +164,15 @@ fn drawNode(node: *World.Node) void {
                 255,
             );
 
+            rl.drawPlane(
+                .init(
+                    @as(f32, @floatFromInt(node.rect.x)) + @as(f32, @floatFromInt(node.rect.w)) / 2.0,
+                    -0.1,
+                    @as(f32, @floatFromInt(node.rect.y)) + @as(f32, @floatFromInt(node.rect.h)) / 2,
+                ),
+                .init(@floatFromInt(node.rect.w), @floatFromInt(node.rect.h)),
+                color.brightness(-0.4).fade(0.6),
+            );
             rl.drawPlane(
                 .init(
                     @as(f32, @floatFromInt(node.rect.x)) + @as(f32, @floatFromInt(node.rect.w)) / 2.0,

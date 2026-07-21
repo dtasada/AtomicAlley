@@ -1,9 +1,11 @@
 const std = @import("std");
+const rl = @import("raylib");
 
 const World = @This();
 
 const main = @import("main.zig");
 
+tiles: std.ArrayList(Tile),
 root_node: *Node,
 
 // `tiles` is the resolution of the world measured in tiles
@@ -19,6 +21,11 @@ pub fn deinit(self: *World, alloc: std.mem.Allocator) void {
     self.root_node.deinit(alloc);
     alloc.destroy(self.root_node);
 }
+
+pub const Tile = struct {
+    pos: rl.Vector3,
+    index: usize,
+};
 
 const Rect = struct {
     x: u32,
@@ -63,10 +70,10 @@ const MIN_LEAF_SIZE: u32 = 16;
 
 fn createCorridors(alloc: std.mem.Allocator, node: *Node) !Rect {
     switch (node.content) {
-        .leaf => |c| {
-            const x = node.rect.x + (node.rect.w - c[0]) / 2;
-            const y = node.rect.y + (node.rect.h - c[1]) / 2;
-            return .init(x, y, c[0], c[1]);
+        .leaf => |size| {
+            const x = node.rect.x + (node.rect.w - size[0]) / 2;
+            const y = node.rect.y + (node.rect.h - size[1]) / 2;
+            return .init(x, y, size[0], size[1]);
         },
 
         .children => |c| {
@@ -124,9 +131,9 @@ fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
         const h: f32 = @floatFromInt(rect.h);
         node.content = .{
             .leaf = .{
-                // @intFromFloat(main.rand.float(f32) * (w * 0.6 - w * 0.4) + w * 0.4),
-                // @intFromFloat(main.rand.float(f32) * (h * 0.6 - h * 0.4) + h * 0.4),
-                @intFromFloat(0.8 * w), @intFromFloat(0.8 * h),
+                // interval: [0.4, 0.6)
+                @intFromFloat((0.4 + main.rand.float(f32) / 5) * w),
+                @intFromFloat((0.4 + main.rand.float(f32) / 5) * h),
             },
         };
         return node;
@@ -172,6 +179,7 @@ fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
             return node;
         }
 
+        // split horizontal instead
         const split = main.rand.intRangeAtMost(u32, min, max);
 
         node.content = .{
