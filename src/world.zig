@@ -139,11 +139,8 @@ fn genNode(alloc: std.mem.Allocator, rect: Rect) !*Node {
         return node;
     }
 
-    var split_vertical: bool = undefined;
-    split_vertical = if (rect.w > rect.h) true else if (rect.h > rect.w) false else main.rand.boolean();
-
     const min = MIN_LEAF_SIZE;
-    if (split_vertical) {
+    if (rect.w > rect.h or rect.w == rect.h and main.rand.boolean()) {
         const max = rect.w - MIN_LEAF_SIZE;
         if (min >= max) {
             const w: f32 = @floatFromInt(rect.w);

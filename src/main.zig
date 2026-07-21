@@ -3,8 +3,8 @@ const rl = @import("raylib");
 const engine = @import("engine.zig");
 const World = @import("world.zig");
 const rcamera = @import("rcamera.zig");
-// const objects = @import("objects.zig");
-// const utils = @import("utils.zig");
+const objects = @import("objects.zig");
+const utils = @import("utils.zig");
 
 const State = enum {
     title,
@@ -192,23 +192,51 @@ var prng: std.Random.DefaultPrng = undefined;
 pub var rand: std.Random = undefined;
 
 pub fn main() !void {
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    defer _ = gpa.deinit();
-    const alloc = gpa.allocator();
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+    defer _ = debug_allocator.deinit();
+    const gpa = debug_allocator.allocator();
 
     prng = .init(undefined);
     rand = prng.random();
 
-    var game: Game = try .init(alloc);
-    defer game.deinit(alloc);
+    var game: Game = try .init(gpa);
+    defer game.deinit(gpa);
 
-    const font_path = try std.fs.path.joinZ(alloc, &.{ "resources", "fonts", "Chicago.ttf" });
-    defer alloc.free(font_path);
+    const font_path = try std.fs.path.joinZ(gpa, &.{ "resources", "fonts", "Chicago.ttf" });
+    defer gpa.free(font_path);
     font = try .init(font_path);
     defer font.unload();
 
-    // objects.atoms = .init(init_values: (unknown type))
-    // objects.atom_images = try utils.imageLoadRow(gpa, &.{ "resources", "images", "atoms", "atoms.png" }, 7, 1.0);
+    const atom_images = try utils.imageLoadRow(gpa, &.{ "resources", "images", "atoms", "atoms.png" }, 7, 1.0);
+    defer gpa.free(atom_images);
+    @memcpy(&objects.atom_images.values, atom_images);
+
+    objects.atoms = .init(.{
+        .argon = .initComptime(
+            .argon,
+            "Argon",
+            &.{.init(.none, .set_abs, 0.0)},
+            .init(50, 50, 50, 255),
+        ),
+        .arsenic = .initComptime(.arsenic, "Arsenic", &.{
+            .init(.damage, .rel_coef, 0.2),
+            .init(.max_health, .rel_coef, -0.2),
+        }, .init(163, 0, 0, 255)),
+        .krypton = .initComptime(.krypton, "Krypton", &.{
+            .init(.dash_cooldown, .rel_coef, -0.5),
+            .init(.dash_range, .rel_coef, 1.0),
+        }, .init(0, 0, 80, 255)),
+        .oganesson = .initComptime(.oganesson, "Oganesson", &.{}, .init(255, 255, 255, 255)),
+        .osmium = .initComptime(.osmium, "Osmium", &.{.init(.none, .set_abs, 0.0)}, .init(50, 50, 50, 255)),
+        .silicon = .initComptime(.silicon, "Silicon", &.{
+            .init(.movement_speed, .rel_coef, -0.2),
+            .init(.max_health, .rel_coef, 0.2),
+        }, .init(254, 251, 234, 255)),
+        .vanadium = .initComptime(.vanadium, "Vanadium", &.{
+            .init(.crit_change, .rel_coef, 0.5),
+            .init(.movement_speed, .rel_coef, -0.2),
+        }, .init(0, 200, 0, 255)),
+    });
 
     game.loop();
 }
