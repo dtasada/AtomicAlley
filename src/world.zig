@@ -149,7 +149,7 @@ fn genNode(gpa: std.mem.Allocator, rand: std.Random, rect: rl.Rectangle, max_lea
 
     // split direction
     // (horizontally means the products are in the x-axis)
-    var split_dir: enum { hor, ver, none } = if (main.rand.float(f32) < p_hor) .hor else .ver;
+    var split_dir: enum { hor, ver, none } = if (rand.float(f32) < p_hor) .hor else .ver;
 
     var split1: rl.Rectangle = undefined;
     var split2: rl.Rectangle = undefined;
@@ -159,7 +159,7 @@ fn genNode(gpa: std.mem.Allocator, rand: std.Random, rect: rl.Rectangle, max_lea
         // if can't split horizontally, check if it can split vertically
         if (node.rect.width < 2 * MIN_LEAF_SIZE) {
             split_dir = .none;
-            if (node.rect.height >= 2 * MIN_LEAF_SIZE and main.rand.float(f32) >= 0.5) {
+            if (node.rect.height >= 2 * MIN_LEAF_SIZE and rand.float(f32) >= 0.5) {
                 split_dir = .ver;
             }
         }
@@ -167,7 +167,7 @@ fn genNode(gpa: std.mem.Allocator, rand: std.Random, rect: rl.Rectangle, max_lea
         // if can't split horizontally, check if it can split vertically
         if (node.rect.height < 2 * MIN_LEAF_SIZE) {
             split_dir = .none;
-            if (node.rect.width >= 2 * MIN_LEAF_SIZE and main.rand.float(f32) >= 0.5) {
+            if (node.rect.width >= 2 * MIN_LEAF_SIZE and rand.float(f32) >= 0.5) {
                 split_dir = .hor;
             }
         }
@@ -225,8 +225,8 @@ fn genNode(gpa: std.mem.Allocator, rand: std.Random, rect: rl.Rectangle, max_lea
     if (split_dir != .none) {
         node.content = .{
             .children = .{
-                try genNode(alloc, split1, max_leaves),
-                try genNode(alloc, split2, max_leaves),
+                try genNode(gpa, rand, split1, max_leaves),
+                try genNode(gpa, rand, split2, max_leaves),
             },
         };
     }
