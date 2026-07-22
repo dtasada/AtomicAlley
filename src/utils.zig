@@ -6,6 +6,16 @@ pub fn floatB(rand: std.Random, a: f32, b: f32) f32 {
     return a + rand.float(f32) * (b - a);
 }
 
+// float between but normally distributed & clamped
+pub fn floatNormB(rand: std.Random, min: f32, max: f32) f32 {
+    const mean = (min + max) / 2;
+    const stddev = (max - min) / 6;
+    // ~99.7% falls inside [min, max]
+    // so when we pass stddev to floatNorm it makes sure ~99.7% falls inside stddev * n
+    const val = mean + stddev * rand.floatNorm(f32);
+    return std.math.clamp(val, min, max);
+}
+
 pub fn imageLoadGrid(
     gpa: std.mem.Allocaotr,
     path: []const []const u8,

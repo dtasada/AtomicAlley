@@ -62,7 +62,7 @@ pub const Node = struct {
     }
 };
 
-const MIN_LEAF_SIZE: f32 = 16;
+const MIN_LEAF_SIZE: f32 = 8;
 
 fn genCorridors(alloc: std.mem.Allocator, node: *Node) !rl.Rectangle {
     switch (node.content) {
@@ -131,16 +131,48 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
     std.debug.assert(node.rect.width >= MIN_LEAF_SIZE);
     std.debug.assert(node.rect.height >= MIN_LEAF_SIZE);
 
-    // horizontally means the products are in the x-axis
-    const splits_horizontally = main.rand.boolean();
+    // --- LLM BEGIN!
+    // split direction, weighted by current aspect ratio
+    // (horizontally means the split cut is along the x-axis)
+    const ratio = node.rect.width / node.rect.height;
+    // probability of choosing a horizontal split (cutting the width down)
+    // 0.5 when square, pulls toward 1.0 as width >>> height, toward 0.0 as height >>> width
+    var p_hor: f32 = 0.5;
+    const BIAS_STRENGTH: f32 = 0.4; // how strongly elongation is corrected (0 = no bias, 0.5 = max)
+    if (ratio > 1.0) {
+        p_hor = 0.5 + BIAS_STRENGTH * @min((ratio - 1.0) / 3.0, 1.0);
+    } else if (ratio < 1.0) {
+        p_hor = 0.5 - BIAS_STRENGTH * @min((1.0 / ratio - 1.0) / 3.0, 1.0);
+    }
+    // --- LLM END!
+
+    // split direction
+    // (horizontally means the products are in the x-axis)
+    var split_dir: enum { hor, ver, none } = if (main.rand.float(f32) < p_hor) .hor else .ver;
 
     var split1: rl.Rectangle = undefined;
     var split2: rl.Rectangle = undefined;
     const split_range: rl.Vector2 = .init(0.7, 0.9);
 
-    // check whether current node is too small to split
-    const split_axis = if (splits_horizontally) node.rect.width else node.rect.height;
-    if (split_axis < 2 * MIN_LEAF_SIZE) {
+    if (split_dir == .hor) {
+        // if can't split horizontally, check if it can split vertically
+        if (node.rect.width < 2 * MIN_LEAF_SIZE) {
+            split_dir = .none;
+            if (node.rect.height >= 2 * MIN_LEAF_SIZE and main.rand.float(f32) >= 0.5) {
+                split_dir = .ver;
+            }
+        }
+    } else if (split_dir == .ver) {
+        // if can't split horizontally, check if it can split vertically
+        if (node.rect.height < 2 * MIN_LEAF_SIZE) {
+            split_dir = .none;
+            if (node.rect.width >= 2 * MIN_LEAF_SIZE and main.rand.float(f32) >= 0.5) {
+                split_dir = .hor;
+            }
+        }
+    }
+
+    if (split_dir == .none) {
         // create an inner rectangle which is a bit smaller
         const inner_w = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.width;
         const inner_h = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.height;
@@ -153,7 +185,7 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
     }
 
     // can split yaay!!
-    if (splits_horizontally) {
+    if (split_dir == .hor) {
         // we can only split if our size is at least 2 * MIN_LEAF_SIZE
         const split_min_x = MIN_LEAF_SIZE;
         const split_max_x = node.rect.width - MIN_LEAF_SIZE;
@@ -170,7 +202,7 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
             node.rect.width - split_x,
             node.rect.height,
         );
-    } else {
+    } else if (split_dir == .ver) {
         const split_min_y = MIN_LEAF_SIZE;
         const split_max_y = node.rect.height - MIN_LEAF_SIZE;
         const split_y = utils.floatB(main.rand, split_min_y, split_max_y);
@@ -189,12 +221,14 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
     }
 
     // create the two nodes
-    node.content = .{
-        .children = .{
-            try genNode(alloc, split1, max_leaves),
-            try genNode(alloc, split2, max_leaves),
-        },
-    };
+    if (split_dir != .none) {
+        node.content = .{
+            .children = .{
+                try genNode(alloc, split1, max_leaves),
+                try genNode(alloc, split2, max_leaves),
+            },
+        };
+    }
 
     return node;
 }

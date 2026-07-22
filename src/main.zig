@@ -139,6 +139,17 @@ const Game = struct {
 fn drawNode(node: *World.Node) void {
     switch (node.content) {
         .children => |c| {
+            // node has children; for each child node, draw corridor between its rect centers
+            rl.drawCylinderEx(
+                .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
+                .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
+                0.4,
+                0.4,
+                8,
+                .dark_purple,
+            );
+
+            // resurse
             drawNode(c[0]);
             drawNode(c[1]);
         },

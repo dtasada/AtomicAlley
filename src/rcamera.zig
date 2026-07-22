@@ -172,7 +172,7 @@ pub fn moveToTarget(camera: *rl.Camera, delta: f32) void {
 }
 
 pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
-    const mousePositionDelta = rl.getMouseDelta();
+    // const mousePositionDelta = rl.getMouseDelta();
 
     const moveInWorldPlane = ((mode == .first_person) or (mode == .third_person));
     const rotateAroundTarget = ((mode == .third_person) or (mode == .orbital));
@@ -185,7 +185,7 @@ pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
     const cameraPanSpeed = CAMERA_PAN_SPEED * rl.getFrameTime();
     const cameraOrbitalSpeed = CAMERA_ORBITAL_SPEED * rl.getFrameTime();
 
-    if (mode == .custom) {} else if (mode == .orbital) {
+    if (mode == .orbital) {
         // Orbital can just orbit
         const rotation = rl.Matrix.rotate(getUp(camera), cameraOrbitalSpeed);
         const view = camera.position.subtract(camera.target).transform(rotation);
@@ -209,8 +209,8 @@ pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
             if (mouseDelta.y < 0.0) moveUp(camera, cameraPanSpeed);
         } else {
             // Mouse support
-            yaw(camera, -mousePositionDelta.x * CAMERA_MOUSE_MOVE_SENSITIVITY, rotateAroundTarget);
-            pitch(camera, -mousePositionDelta.y * CAMERA_MOUSE_MOVE_SENSITIVITY, lockView, rotateAroundTarget, rotateUp);
+            // yaw(camera, -mousePositionDelta.x * CAMERA_MOUSE_MOVE_SENSITIVITY, rotateAroundTarget);
+            // pitch(camera, -mousePositionDelta.y * CAMERA_MOUSE_MOVE_SENSITIVITY, lockView, rotateAroundTarget, rotateUp);
         }
 
         // Keyboard support
