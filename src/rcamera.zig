@@ -182,14 +182,14 @@ pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
     // Camera speeds based on frame time
     const cameraMoveSpeed = CAMERA_MOVE_SPEED * rl.getFrameTime();
     const cameraRotationSpeed = CAMERA_ROTATION_SPEED * rl.getFrameTime();
-    const cameraPanSpeed = CAMERA_PAN_SPEED * rl.getFrameTime();
-    const cameraOrbitalSpeed = CAMERA_ORBITAL_SPEED * rl.getFrameTime();
+    // const cameraPanSpeed = CAMERA_PAN_SPEED * rl.getFrameTime();
+    // const cameraOrbitalSpeed = CAMERA_ORBITAL_SPEED * rl.getFrameTime();
 
     if (mode == .orbital) {
         // Orbital can just orbit
-        const rotation = rl.Matrix.rotate(getUp(camera), cameraOrbitalSpeed);
-        const view = camera.position.subtract(camera.target).transform(rotation);
-        camera.position = camera.target.add(view);
+        // const rotation = rl.Matrix.rotate(getUp(camera), cameraOrbitalSpeed);
+        // const view = camera.position.subtract(camera.target).transform(rotation);
+        // camera.position = camera.target.add(view);
     } else {
         // Camera rotation
         if (rl.isKeyDown(.down)) pitch(camera, -cameraRotationSpeed, lockView, rotateAroundTarget, rotateUp);
@@ -202,11 +202,11 @@ pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
         // Camera movement
         // Camera pan (for CAMERA_FREE)
         if ((mode == .free) and (rl.isMouseButtonDown(.middle))) {
-            const mouseDelta = rl.getMouseDelta();
-            if (mouseDelta.x > 0.0) moveRight(camera, cameraPanSpeed, moveInWorldPlane);
-            if (mouseDelta.x < 0.0) moveRight(camera, -cameraPanSpeed, moveInWorldPlane);
-            if (mouseDelta.y > 0.0) moveUp(camera, -cameraPanSpeed);
-            if (mouseDelta.y < 0.0) moveUp(camera, cameraPanSpeed);
+            // const mouseDelta = rl.getMouseDelta();
+            // if (mouseDelta.x > 0.0) moveRight(camera, cameraPanSpeed, moveInWorldPlane);
+            // if (mouseDelta.x < 0.0) moveRight(camera, -cameraPanSpeed, moveInWorldPlane);
+            // if (mouseDelta.y > 0.0) moveUp(camera, -cameraPanSpeed);
+            // if (mouseDelta.y < 0.0) moveUp(camera, cameraPanSpeed);
         } else {
             // Mouse support
             // yaw(camera, -mousePositionDelta.x * CAMERA_MOUSE_MOVE_SENSITIVITY, rotateAroundTarget);
@@ -221,14 +221,14 @@ pub fn update(camera: *rl.Camera, mode: rl.CameraMode) void {
 
         // Gamepad movement
         if (rl.isGamepadAvailable(0)) {
-            // Gamepad controller support
-            yaw(camera, -(rl.getGamepadAxisMovement(0, .right_x) * 2) * CAMERA_MOUSE_MOVE_SENSITIVITY, rotateAroundTarget);
-            pitch(camera, -(rl.getGamepadAxisMovement(0, .right_y) * 2) * CAMERA_MOUSE_MOVE_SENSITIVITY, lockView, rotateAroundTarget, rotateUp);
+            // // Gamepad controller support
+            // yaw(camera, -(rl.getGamepadAxisMovement(0, .right_x) * 2) * CAMERA_MOUSE_MOVE_SENSITIVITY, rotateAroundTarget);
+            // pitch(camera, -(rl.getGamepadAxisMovement(0, .right_y) * 2) * CAMERA_MOUSE_MOVE_SENSITIVITY, lockView, rotateAroundTarget, rotateUp);
 
-            if (rl.getGamepadAxisMovement(0, .left_y) <= -0.25) moveForward(camera, cameraMoveSpeed, moveInWorldPlane);
-            if (rl.getGamepadAxisMovement(0, .left_x) <= -0.25) moveRight(camera, -cameraMoveSpeed, moveInWorldPlane);
-            if (rl.getGamepadAxisMovement(0, .left_y) >= 0.25) moveForward(camera, -cameraMoveSpeed, moveInWorldPlane);
-            if (rl.getGamepadAxisMovement(0, .left_x) >= 0.25) moveRight(camera, cameraMoveSpeed, moveInWorldPlane);
+            // if (rl.getGamepadAxisMovement(0, .left_y) <= -0.25) moveForward(camera, cameraMoveSpeed, moveInWorldPlane);
+            // if (rl.getGamepadAxisMovement(0, .left_x) <= -0.25) moveRight(camera, -cameraMoveSpeed, moveInWorldPlane);
+            // if (rl.getGamepadAxisMovement(0, .left_y) >= 0.25) moveForward(camera, -cameraMoveSpeed, moveInWorldPlane);
+            // if (rl.getGamepadAxisMovement(0, .left_x) >= 0.25) moveRight(camera, cameraMoveSpeed, moveInWorldPlane);
         }
 
         if (mode == .free) {

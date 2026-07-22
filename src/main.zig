@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const engine = @import("engine.zig");
 const World = @import("world.zig");
+const Player = @import("Player.zig");
 const rcamera = @import("rcamera.zig");
 const objects = @import("objects.zig");
 const utils = @import("utils.zig");
@@ -16,11 +17,6 @@ const Screen = struct {
     height: i32,
 };
 
-const Player = struct {
-    position: rl.Vector3,
-    speed: rl.Vector2,
-};
-
 const Game = struct {
     screen: Screen,
     title_screen: engine.Texture,
@@ -32,6 +28,8 @@ const Game = struct {
     prng: std.Random.DefaultPrng,
     rand: std.Random,
     font: rl.Font,
+
+    model: rl.Model,
 
     fn init(gpa: std.mem.Allocator) !*Game {
         const width: i32 = 1280;
@@ -63,17 +61,21 @@ const Game = struct {
             },
             .state = .title,
             .camera = .{
-                .position = .init(-64, 64, -64),
-                .target = .init(64, 0, 64),
+                .position = .init(0, 0, 100),
+                .target = .init(0, 0, 0),
                 .up = .init(0, 1, 0),
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .player = .{ .position = .init(-64, 0, -64), .speed = .init(0.5, 0.5) },
+            .player = try .init(
+                .init(0, 0, 0),
+                .init(0.5, 0.5),
+            ),
             .prng = .init(@intFromFloat(rl.getTime() * 1000)),
             .world = undefined,
             .rand = undefined,
             .font = try .init(font_path),
+            .model = try rl.loadModel("resources/models/cube.obj"),
         };
 
         game.rand = game.prng.random();
@@ -90,6 +92,7 @@ const Game = struct {
         self.title_music.unload();
         self.world.deinit(gpa);
         self.font.unload();
+        self.model.unload();
         rl.closeWindow();
         gpa.destroy(self);
     }
@@ -98,7 +101,7 @@ const Game = struct {
         while (!rl.windowShouldClose()) {
             rl.clearBackground(.black);
 
-            self.camera.update(.third_person);
+            // self.camera.update(.third_person);
             rl.beginDrawing();
 
             switch (self.state) {
@@ -131,13 +134,8 @@ const Game = struct {
                 .in_game => {
                     rl.beginMode3D(self.camera);
 
-                    if (rl.isKeyDown(.w)) rcamera.moveForward(&self.camera, self.player.speed.y, true);
-                    if (rl.isKeyDown(.a)) rcamera.moveRight(&self.camera, -self.player.speed.x, true);
-                    if (rl.isKeyDown(.s)) rcamera.moveForward(&self.camera, -self.player.speed.y, true);
-                    if (rl.isKeyDown(.d)) rcamera.moveRight(&self.camera, self.player.speed.x, true);
-
-                    self.player.position = self.camera.target;
-                    rl.drawSphere(self.player.position, 1, .red);
+                    self.player.update(&self.camera);
+                    self.player.draw();
 
                     drawNode(self.world.root_node);
 
@@ -157,8 +155,8 @@ fn drawNode(node: *World.Node) void {
         .children => |c| {
             // node has children; for each child node, draw corridor between its rect centers
             rl.drawCylinderEx(
-                .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
-                .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
+                .init(c[0].rect.x + c[0].rect.width / 2, c[0].rect.y + c[0].rect.height / 2, 0.1),
+                .init(c[1].rect.x + c[1].rect.width / 2, c[1].rect.y + c[1].rect.height / 2, 0.1),
                 0.4,
                 0.4,
                 8,
@@ -176,13 +174,13 @@ fn drawNode(node: *World.Node) void {
             const h: f32 = node.rect.height;
             const center: rl.Vector3 = .init(
                 node.rect.x + node.rect.width / 2,
-                0,
                 node.rect.y + node.rect.height / 2,
+                0,
             );
-            const p1: rl.Vector3 = .init(center.x - w / 2, center.y, center.z - h / 2);
-            const p2: rl.Vector3 = .init(center.x + w / 2, center.y, center.z - h / 2);
-            const p3: rl.Vector3 = .init(center.x + w / 2, center.y, center.z + h / 2);
-            const p4: rl.Vector3 = .init(center.x - w / 2, center.y, center.z + h / 2);
+            const p1: rl.Vector3 = .init(center.x - w / 2, center.y - h / 2, center.z);
+            const p2: rl.Vector3 = .init(center.x + w / 2, center.y - h / 2, center.z);
+            const p3: rl.Vector3 = .init(center.x + w / 2, center.y + h / 2, center.z);
+            const p4: rl.Vector3 = .init(center.x - w / 2, center.y + h / 2, center.z);
             rl.drawLine3D(p1, p2, color);
             rl.drawLine3D(p2, p3, color);
             rl.drawLine3D(p3, p4, color);
@@ -192,8 +190,8 @@ fn drawNode(node: *World.Node) void {
             rl.drawPlane(
                 .init(
                     inner.x + inner.width / 2,
-                    0.0,
                     inner.y + inner.height / 2,
+                    0,
                 ),
                 .init(inner.width, inner.height),
                 node.color,
