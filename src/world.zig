@@ -10,11 +10,12 @@ tiles: std.ArrayList(Tile),
 root_node: *Node,
 
 // `tiles` is the resolution of the world measured in tiles
-pub fn init(alloc: std.mem.Allocator, resolution: [2]u32) !World {
+pub fn init(gpa: std.mem.Allocator, rand: std.Random, resolution: [2]u32) !World {
     const world: World = .{
         .tiles = .empty,
         .root_node = try genNode(
-            alloc,
+            gpa,
+            rand,
             .init(
                 0,
                 0,
@@ -28,9 +29,9 @@ pub fn init(alloc: std.mem.Allocator, resolution: [2]u32) !World {
     return world;
 }
 
-pub fn deinit(self: *World, alloc: std.mem.Allocator) void {
-    self.root_node.deinit(alloc);
-    alloc.destroy(self.root_node);
+pub fn deinit(self: *World, gpa: std.mem.Allocator) void {
+    self.root_node.deinit(gpa);
+    gpa.destroy(self.root_node);
 }
 
 pub const Tile = struct {
@@ -47,15 +48,15 @@ pub const Node = struct {
     paths: std.ArrayList(rl.Rectangle),
     color: rl.Color,
 
-    fn deinit(self: *Node, alloc: std.mem.Allocator) void {
-        self.paths.deinit(alloc);
+    fn deinit(self: *Node, gpa: std.mem.Allocator) void {
+        self.paths.deinit(gpa);
 
         switch (self.content) {
             .children => |c| {
-                c[0].deinit(alloc);
-                alloc.destroy(c[0]);
-                c[1].deinit(alloc);
-                alloc.destroy(c[1]);
+                c[0].deinit(gpa);
+                gpa.destroy(c[0]);
+                c[1].deinit(gpa);
+                gpa.destroy(c[1]);
             },
             .leaf => {},
         }
@@ -64,7 +65,7 @@ pub const Node = struct {
 
 const MIN_LEAF_SIZE: f32 = 8;
 
-fn genCorridors(alloc: std.mem.Allocator, node: *Node) !rl.Rectangle {
+fn genCorridors(gpa: std.mem.Allocator, rand: std.Random, node: *Node) !rl.Rectangle {
     switch (node.content) {
         .leaf => |size| {
             const x = node.rect.x + (node.rect.width - size[0]) / 2;
@@ -73,8 +74,8 @@ fn genCorridors(alloc: std.mem.Allocator, node: *Node) !rl.Rectangle {
         },
 
         .children => |c| {
-            const left = try genCorridors(alloc, c[0]);
-            const right = try genCorridors(alloc, c[1]);
+            const left = try genCorridors(gpa, c[0]);
+            const right = try genCorridors(gpa, c[1]);
 
             const cx1 = left.x + left.w / 2;
             const cy1 = left.y + left.h / 2;
@@ -83,45 +84,45 @@ fn genCorridors(alloc: std.mem.Allocator, node: *Node) !rl.Rectangle {
 
             const width = 2;
 
-            if (main.rand.boolean()) {
+            if (rand.boolean()) {
                 // Horizontal then Vertical
                 const hx = @min(cx1, cx2);
                 const hy = cy1 - width / 2;
                 const hw = (if (cx1 > cx2) cx1 - cx2 else cx2 - cx1) + width;
                 const hh = width;
-                try node.paths.append(alloc, .init(hx, hy, hw, hh));
+                try node.paths.append(gpa, .init(hx, hy, hw, hh));
 
                 const vx = cx2 - width / 2;
                 const vy = @min(cy1, cy2);
                 const vw = width;
                 const vh = (if (cy1 > cy2) cy1 - cy2 else cy2 - cy1) + width;
-                try node.paths.append(alloc, .init(vx, vy, vw, vh));
+                try node.paths.append(gpa, .init(vx, vy, vw, vh));
             } else {
                 // Vertical then Horizontal
                 const vx = cx1 - width / 2;
                 const vy = @min(cy1, cy2);
                 const vw = width;
                 const vh = (if (cy1 > cy2) cy1 - cy2 else cy2 - cy1) + width;
-                try node.paths.append(alloc, .init(vx, vy, vw, vh));
+                try node.paths.append(gpa, .init(vx, vy, vw, vh));
 
                 const hx = @min(cx1, cx2);
                 const hy = cy2 - width / 2;
                 const hw = (if (cx1 > cx2) cx1 - cx2 else cx2 - cx1) + width;
                 const hh = width;
-                try node.paths.append(alloc, .init(hx, hy, hw, hh));
+                try node.paths.append(gpa, .init(hx, hy, hw, hh));
             }
 
-            return if (main.rand.boolean()) right else left;
+            return if (rand.boolean()) right else left;
         },
     }
 }
 
-fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*Node {
-    var node = try alloc.create(Node);
+fn genNode(gpa: std.mem.Allocator, rand: std.Random, rect: rl.Rectangle, max_leaves: usize) !*Node {
+    var node = try gpa.create(Node);
     node.color = .init(
-        main.rand.int(u8),
-        main.rand.int(u8),
-        main.rand.int(u8),
+        rand.int(u8),
+        rand.int(u8),
+        rand.int(u8),
         255,
     );
     node.rect = rect;
@@ -174,10 +175,10 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
 
     if (split_dir == .none) {
         // create an inner rectangle which is a bit smaller
-        const inner_w = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.width;
-        const inner_h = utils.floatB(main.rand, split_range.x, split_range.y) * node.rect.height;
-        const inner_x = utils.floatB(main.rand, node.rect.x, node.rect.x + node.rect.width - inner_w);
-        const inner_y = utils.floatB(main.rand, node.rect.y, node.rect.y + node.rect.height - inner_h);
+        const inner_w = utils.floatB(rand, split_range.x, split_range.y) * node.rect.width;
+        const inner_h = utils.floatB(rand, split_range.x, split_range.y) * node.rect.height;
+        const inner_x = utils.floatB(rand, node.rect.x, node.rect.x + node.rect.width - inner_w);
+        const inner_y = utils.floatB(rand, node.rect.y, node.rect.y + node.rect.height - inner_h);
         node.content = .{
             .leaf = .init(inner_x, inner_y, inner_w, inner_h),
         };
@@ -189,7 +190,7 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
         // we can only split if our size is at least 2 * MIN_LEAF_SIZE
         const split_min_x = MIN_LEAF_SIZE;
         const split_max_x = node.rect.width - MIN_LEAF_SIZE;
-        const split_x = utils.floatB(main.rand, split_min_x, split_max_x);
+        const split_x = utils.floatB(rand, split_min_x, split_max_x);
         split1 = .init(
             node.rect.x,
             node.rect.y,
@@ -205,7 +206,7 @@ fn genNode(alloc: std.mem.Allocator, rect: rl.Rectangle, max_leaves: usize) !*No
     } else if (split_dir == .ver) {
         const split_min_y = MIN_LEAF_SIZE;
         const split_max_y = node.rect.height - MIN_LEAF_SIZE;
-        const split_y = utils.floatB(main.rand, split_min_y, split_max_y);
+        const split_y = utils.floatB(rand, split_min_y, split_max_y);
         split1 = .init(
             node.rect.x,
             node.rect.y,

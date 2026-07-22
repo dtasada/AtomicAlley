@@ -5,7 +5,7 @@ pub const Texture = struct {
     frames: std.ArrayList(rl.Texture),
 
     pub fn init(
-        alloc: std.mem.Allocator,
+        gpa: std.mem.Allocator,
         frames_paths: []const []const []const u8, // list of file paths
         width: i32,
         height: i32,
@@ -13,8 +13,8 @@ pub const Texture = struct {
         var image: Texture = .{ .frames = .empty };
 
         for (frames_paths) |path| {
-            const joined_path = try std.fs.path.joinZ(alloc, path);
-            defer alloc.free(joined_path);
+            const joined_path = try std.fs.path.joinZ(gpa, path);
+            defer gpa.free(joined_path);
             var img: rl.Image = try .init(joined_path);
             defer img.unload();
 
@@ -24,17 +24,17 @@ pub const Texture = struct {
             if (width != 0 and height != 0)
                 img.resizeNN(width, height);
 
-            try image.frames.append(alloc, try .fromImage(img));
+            try image.frames.append(gpa, try .fromImage(img));
         }
 
         return image;
     }
 
-    pub fn deinit(self: *Texture, alloc: std.mem.Allocator) void {
+    pub fn deinit(self: *Texture, allocgpa: std.mem.Allocator) void {
         for (self.frames.items) |frame|
             frame.unload();
 
-        self.frames.deinit(alloc);
+        self.frames.deinit(allocgpa);
     }
 };
 
