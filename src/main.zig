@@ -29,8 +29,6 @@ const Game = struct {
     rand: std.Random,
     font: rl.Font,
 
-    model: rl.Model,
-
     fn init(gpa: std.mem.Allocator) !*Game {
         const width: i32 = 1280;
         const height: i32 = 720;
@@ -61,7 +59,7 @@ const Game = struct {
             },
             .state = .title,
             .camera = .{
-                .position = .init(0, 0, 100),
+                .position = .init(71, 120, 71),
                 .target = .init(0, 0, 0),
                 .up = .init(0, 1, 0),
                 .fovy = 60,
@@ -69,17 +67,16 @@ const Game = struct {
             },
             .player = try .init(
                 .init(0, 0, 0),
-                .init(0.5, 0.5),
+                .init(0.5, 0, 0.5),
             ),
             .prng = .init(@intFromFloat(rl.getTime() * 1000)),
             .world = undefined,
             .rand = undefined,
             .font = try .init(font_path),
-            .model = try rl.loadModel("resources/models/cube.obj"),
         };
 
         game.rand = game.prng.random();
-        game.world = try .init(gpa, game.rand, .{ 64, 64 });
+        game.world = try .init(gpa, game.rand, .{ 128, 128 });
 
         rl.playSound(game.title_music);
 
@@ -92,14 +89,13 @@ const Game = struct {
         self.title_music.unload();
         self.world.deinit(gpa);
         self.font.unload();
-        self.model.unload();
         rl.closeWindow();
         gpa.destroy(self);
     }
 
     fn loop(self: *Game) void {
         while (!rl.windowShouldClose()) {
-            rl.clearBackground(.black);
+            rl.clearBackground(.dark_gray);
 
             // self.camera.update(.third_person);
             rl.beginDrawing();
@@ -134,10 +130,12 @@ const Game = struct {
                 .in_game => {
                     rl.beginMode3D(self.camera);
 
+                    // world stuff
+                    self.world.draw();
+
+                    // player stuff
                     self.player.update(&self.camera);
                     self.player.draw();
-
-                    drawNode(self.world.root_node);
 
                     rl.endMode3D();
                 },
@@ -149,56 +147,6 @@ const Game = struct {
         }
     }
 };
-
-fn drawNode(node: *World.Node) void {
-    switch (node.content) {
-        .children => |c| {
-            // node has children; for each child node, draw corridor between its rect centers
-            rl.drawCylinderEx(
-                .init(c[0].rect.x + c[0].rect.width / 2, c[0].rect.y + c[0].rect.height / 2, 0.1),
-                .init(c[1].rect.x + c[1].rect.width / 2, c[1].rect.y + c[1].rect.height / 2, 0.1),
-                0.4,
-                0.4,
-                8,
-                .dark_purple,
-            );
-
-            // resurse
-            drawNode(c[0]);
-            drawNode(c[1]);
-        },
-        .leaf => |inner| {
-            // rect borders
-            const color: rl.Color = .init(0, 240, 0, 255);
-            const w: f32 = node.rect.width;
-            const h: f32 = node.rect.height;
-            const center: rl.Vector3 = .init(
-                node.rect.x + node.rect.width / 2,
-                node.rect.y + node.rect.height / 2,
-                0,
-            );
-            const p1: rl.Vector3 = .init(center.x - w / 2, center.y - h / 2, center.z);
-            const p2: rl.Vector3 = .init(center.x + w / 2, center.y - h / 2, center.z);
-            const p3: rl.Vector3 = .init(center.x + w / 2, center.y + h / 2, center.z);
-            const p4: rl.Vector3 = .init(center.x - w / 2, center.y + h / 2, center.z);
-            rl.drawLine3D(p1, p2, color);
-            rl.drawLine3D(p2, p3, color);
-            rl.drawLine3D(p3, p4, color);
-            rl.drawLine3D(p4, p1, color);
-
-            // plane itself
-            rl.drawPlane(
-                .init(
-                    inner.x + inner.width / 2,
-                    inner.y + inner.height / 2,
-                    0,
-                ),
-                .init(inner.width, inner.height),
-                node.color,
-            );
-        },
-    }
-}
 
 pub fn main() !void {
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;

@@ -1,12 +1,13 @@
 const rl = @import("raylib");
+const std = @import("std");
 const Self = @This();
 const rcamera = @import("rcamera.zig");
 
 pos: rl.Vector3,
-vel: rl.Vector2,
+vel: rl.Vector3,
 model: rl.Model,
 
-pub fn init(pos: rl.Vector3, vel: rl.Vector2) !Self {
+pub fn init(pos: rl.Vector3, vel: rl.Vector3) !Self {
     return .{
         .pos = pos,
         .vel = vel,
@@ -15,16 +16,16 @@ pub fn init(pos: rl.Vector3, vel: rl.Vector2) !Self {
 }
 
 pub fn update(self: *Self, camera: *rl.Camera) void {
-    if (rl.isKeyDown(.w)) self.pos.y += self.vel.y;
+    if (rl.isKeyDown(.w)) self.pos.z -= self.vel.z;
     if (rl.isKeyDown(.a)) self.pos.x -= self.vel.x;
-    if (rl.isKeyDown(.s)) self.pos.y -= self.vel.y;
+    if (rl.isKeyDown(.s)) self.pos.z += self.vel.z;
     if (rl.isKeyDown(.d)) self.pos.x += self.vel.x;
 
     const m: f32 = 0.2;
     const delta = rl.Vector3.init(
-        self.pos.x - camera.position.x,
-        self.pos.y - camera.position.y,
+        self.pos.x - camera.target.x,
         0,
+        self.pos.z - camera.target.z,
     ).scale(m);
     camera.position = camera.position.add(delta);
     camera.target = camera.target.add(delta);
@@ -35,7 +36,7 @@ pub fn draw(self: Self) void {
         self.model,
         self.pos,
         1.8,
-        .gray,
+        .light_gray,
     );
 }
 

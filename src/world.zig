@@ -2,16 +2,17 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 
-const World = @This();
+const Self = @This();
 
 const main = @import("main.zig");
 
 tiles: std.ArrayList(Tile),
 root_node: *Node,
+model: rl.Model,
 
-// `tiles` is the resolution of the world measured in tiles
-pub fn init(gpa: std.mem.Allocator, rand: std.Random, resolution: [2]u32) !World {
-    const world: World = .{
+// "tiles" is the resolution of the world measured in tiles
+pub fn init(gpa: std.mem.Allocator, rand: std.Random, resolution: [2]u32) !Self {
+    var world: Self = .{
         .tiles = .empty,
         .root_node = try genNode(
             gpa,
@@ -24,14 +25,106 @@ pub fn init(gpa: std.mem.Allocator, rand: std.Random, resolution: [2]u32) !World
             ),
             20,
         ),
+        .model = try rl.loadModel("resources/models/cube.obj"),
     };
     // _ = try genCorridors(alloc, world.root_node);
+    try world.genTiles(gpa, world.root_node);
     return world;
 }
 
-pub fn deinit(self: *World, gpa: std.mem.Allocator) void {
+pub fn deinit(self: *Self, gpa: std.mem.Allocator) void {
     self.root_node.deinit(gpa);
+    self.tiles.deinit(gpa);
+    rl.unloadModel(self.model);
     gpa.destroy(self.root_node);
+}
+
+pub fn genTiles(self: *Self, gpa: std.mem.Allocator, node: *Node) !void {
+    // only if it's a leaf, we operate on it
+    switch (node.content) {
+        .children => |c| {
+            // node has children, so shift focus on them
+            try self.genTiles(gpa, c[0]);
+            try self.genTiles(gpa, c[1]);
+        },
+        .leaf => |inner| {
+            // node is a child, so has an inner rect (an actual room); we need to process it
+            for (0..@intFromFloat(inner.height)) |y| {
+                for (0..@intFromFloat(inner.width)) |x| {
+                    const s: f32 = 5;
+                    const tile_pos: rl.Vector3 = .init(
+                        (inner.x + @as(f32, @floatFromInt(x))) * s,
+                        0,
+                        (inner.y + @as(f32, @floatFromInt(y))) * s,
+                    );
+                    try self.tiles.append(gpa, .{
+                        .pos = tile_pos,
+                        .index = 0,
+                    });
+                }
+            }
+        },
+    }
+}
+
+pub fn draw(self: Self) void {
+    // draw the debug minimap nodes
+    self.drawNode(self.root_node);
+
+    // draw the actual tiles
+    for (self.tiles.items) |tile| {
+        rl.drawModel(self.model, tile.pos, 2, .white);
+    }
+}
+
+pub fn drawNode(self: Self, node: *Node) void {
+    switch (node.content) {
+        .children => |c| {
+            // node has children; for each child node, draw corridor between its rect centers
+            rl.drawCylinderEx(
+                .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
+                .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
+                0.4,
+                0.4,
+                8,
+                .dark_purple,
+            );
+
+            // recurse
+            self.drawNode(c[0]);
+            self.drawNode(c[1]);
+        },
+        .leaf => |inner| {
+            // rect borders
+            const color: rl.Color = .init(0, 240, 0, 255);
+            const w: f32 = node.rect.width;
+            const h: f32 = node.rect.height;
+            const center: rl.Vector3 = .init(
+                node.rect.x + node.rect.width / 2,
+                0,
+                node.rect.y + node.rect.height / 2,
+            );
+            const p1: rl.Vector3 = .init(center.x - w / 2, center.y, center.z - h / 2);
+            const p2: rl.Vector3 = .init(center.x + w / 2, center.y, center.z - h / 2);
+            const p3: rl.Vector3 = .init(center.x + w / 2, center.y, center.z + h / 2);
+            const p4: rl.Vector3 = .init(center.x - w / 2, center.y, center.z + h / 2);
+            rl.drawLine3D(p1, p2, color);
+            rl.drawLine3D(p2, p3, color);
+            rl.drawLine3D(p3, p4, color);
+            rl.drawLine3D(p4, p1, color);
+
+            // plane itself
+            rl.drawPlane(
+                .init(
+                    inner.x + inner.width / 2,
+                    0,
+                    inner.y + inner.height / 2,
+                ),
+                .init(inner.width, inner.height),
+                node.color,
+            );
+        },
+    }
 }
 
 pub const Tile = struct {
@@ -63,7 +156,7 @@ pub const Node = struct {
     }
 };
 
-const MIN_LEAF_SIZE: f32 = 8;
+const MIN_LEAF_SIZE: f32 = 12;
 
 fn genCorridors(gpa: std.mem.Allocator, rand: std.Random, node: *Node) !rl.Rectangle {
     switch (node.content) {
