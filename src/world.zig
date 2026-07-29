@@ -78,14 +78,15 @@ pub fn draw(self: Self) void {
 }
 
 pub fn drawNode(self: Self, node: *Node) void {
+    const S: f32 = 0.8;
     switch (node.content) {
         .children => |c| {
-            // node has children; for each child node, draw corridor between its rect centers
+            // node has children; for each child node, draw corridor between its rect center
             rl.drawCylinderEx(
-                .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
-                .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
-                0.4,
-                0.4,
+                .init((c[0].rect.x + c[0].rect.width / 2) * S, 0.1, (c[0].rect.y + c[0].rect.height / 2) * S),
+                .init((c[1].rect.x + c[1].rect.width / 2) * S, 0.1, (c[1].rect.y + c[1].rect.height / 2) * S),
+                0.6,
+                0.6,
                 8,
                 .dark_purple,
             );
@@ -97,30 +98,30 @@ pub fn drawNode(self: Self, node: *Node) void {
         .leaf => |inner| {
             // rect borders
             const color: rl.Color = .init(0, 240, 0, 255);
-            const w: f32 = node.rect.width;
-            const h: f32 = node.rect.height;
+            const rect = utils.scaleRect(node.rect, S);
             const center: rl.Vector3 = .init(
-                node.rect.x + node.rect.width / 2,
+                rect.x + rect.width / 2,
                 0,
-                node.rect.y + node.rect.height / 2,
+                rect.y + rect.height / 2,
             );
-            const p1: rl.Vector3 = .init(center.x - w / 2, center.y, center.z - h / 2);
-            const p2: rl.Vector3 = .init(center.x + w / 2, center.y, center.z - h / 2);
-            const p3: rl.Vector3 = .init(center.x + w / 2, center.y, center.z + h / 2);
-            const p4: rl.Vector3 = .init(center.x - w / 2, center.y, center.z + h / 2);
+            const p1: rl.Vector3 = .init(center.x - rect.width / 2, center.y, center.z - rect.height / 2);
+            const p2: rl.Vector3 = .init(center.x + rect.width / 2, center.y, center.z - rect.height / 2);
+            const p3: rl.Vector3 = .init(center.x + rect.width / 2, center.y, center.z + rect.height / 2);
+            const p4: rl.Vector3 = .init(center.x - rect.width / 2, center.y, center.z + rect.height / 2);
             rl.drawLine3D(p1, p2, color);
             rl.drawLine3D(p2, p3, color);
             rl.drawLine3D(p3, p4, color);
             rl.drawLine3D(p4, p1, color);
 
             // plane itself
+            const scaled_inner = utils.scaleRect(inner, S);
             rl.drawPlane(
                 .init(
-                    inner.x + inner.width / 2,
+                    scaled_inner.x + scaled_inner.width / 2,
                     0,
-                    inner.y + inner.height / 2,
+                    scaled_inner.y + scaled_inner.height / 2,
                 ),
-                .init(inner.width, inner.height),
+                .init(scaled_inner.width, scaled_inner.height),
                 node.color,
             );
         },
@@ -156,7 +157,7 @@ pub const Node = struct {
     }
 };
 
-const MIN_LEAF_SIZE: f32 = 12;
+const MIN_LEAF_SIZE: f32 = 16;
 
 fn genCorridors(gpa: std.mem.Allocator, rand: std.Random, node: *Node) !rl.Rectangle {
     switch (node.content) {
