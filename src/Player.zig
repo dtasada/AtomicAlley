@@ -6,11 +6,11 @@ const Self = @This();
 pos: rl.Vector3,
 model: rl.Model,
 
-pub fn init(pos: rl.Vector3) !Self {
-    return .{
-        .pos = pos,
-        .model = try rl.loadModel("resources/models/dexter.obj"),
-    };
+pub fn init(pos: rl.Vector3, light_shader: rl.Shader) !Self {
+    const model = try rl.loadModel("resources/models/dexter.obj");
+    model.materials[0].shader = light_shader;
+
+    return .{ .pos = pos, .model = model };
 }
 
 pub fn update(self: *Self, camera: *rl.Camera) void {
@@ -42,12 +42,7 @@ pub fn update(self: *Self, camera: *rl.Camera) void {
 }
 
 pub fn draw(self: Self) void {
-    rl.drawModel(
-        self.model,
-        self.pos,
-        1.8,
-        .light_gray,
-    );
+    rl.drawModel(self.model, self.pos, 1.8, .light_gray);
 }
 
 pub fn deinit(self: *Self) void {
