@@ -59,7 +59,7 @@ const Game = struct {
             },
             .state = .title,
             .camera = .{
-                .position = .init(71, 120, 71),
+                .position = .init(71, 90, 71),
                 .target = .init(0, 0, 0),
                 .up = .init(0, 1, 0),
                 .fovy = 60,
@@ -67,7 +67,6 @@ const Game = struct {
             },
             .player = try .init(
                 .init(0, 0, 0),
-                .init(0.5, 0, 0.5),
             ),
             .prng = .init(@intFromFloat(rl.getTime() * 1000)),
             .world = undefined,

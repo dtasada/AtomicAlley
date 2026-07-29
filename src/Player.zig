@@ -1,25 +1,35 @@
-const rl = @import("raylib");
 const std = @import("std");
-const Self = @This();
+const rl = @import("raylib");
 const rcamera = @import("rcamera.zig");
+const Self = @This();
 
 pos: rl.Vector3,
-vel: rl.Vector3,
 model: rl.Model,
 
-pub fn init(pos: rl.Vector3, vel: rl.Vector3) !Self {
+pub fn init(pos: rl.Vector3) !Self {
     return .{
         .pos = pos,
-        .vel = vel,
         .model = try rl.loadModel("resources/models/dexter.obj"),
     };
 }
 
 pub fn update(self: *Self, camera: *rl.Camera) void {
-    if (rl.isKeyDown(.w)) self.pos.z -= self.vel.z;
-    if (rl.isKeyDown(.a)) self.pos.x -= self.vel.x;
-    if (rl.isKeyDown(.s)) self.pos.z += self.vel.z;
-    if (rl.isKeyDown(.d)) self.pos.x += self.vel.x;
+    var move_vec: rl.Vector2 = .zero();
+    if (rl.isKeyDown(.w)) {
+        move_vec = move_vec.add(rl.Vector2.init(0, -1).rotate(std.math.pi * -(1.0 / 4.0)));
+    }
+    if (rl.isKeyDown(.a)) {
+        move_vec = move_vec.add(rl.Vector2.init(0, -1).rotate(std.math.pi * -(3.0 / 4.0)));
+    }
+    if (rl.isKeyDown(.s)) {
+        move_vec = move_vec.add(rl.Vector2.init(0, -1).rotate(std.math.pi * (3.0 / 4.0)));
+    }
+    if (rl.isKeyDown(.d)) {
+        move_vec = move_vec.add(rl.Vector2.init(0, -1).rotate(std.math.pi * (1.0 / 4.0)));
+    }
+    move_vec = move_vec.normalize().scale(0.7);
+    self.pos.x += move_vec.x;
+    self.pos.z += move_vec.y;
 
     const m: f32 = 0.2;
     const delta = rl.Vector3.init(

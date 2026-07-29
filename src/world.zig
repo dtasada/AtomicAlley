@@ -72,9 +72,9 @@ pub fn draw(self: Self) void {
     self.drawNode(self.root_node);
 
     // draw the actual tiles
-    for (self.tiles.items) |tile| {
-        rl.drawModel(self.model, tile.pos, 2, .white);
-    }
+    // for (self.tiles.items) |tile| {
+    //     rl.drawModel(self.model, tile.pos, 2, .white);
+    // }
 }
 
 pub fn drawNode(self: Self, node: *Node) void {
