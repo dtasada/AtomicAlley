@@ -3,6 +3,7 @@ const rl = @import("raylib");
 const engine = @import("engine.zig");
 const World = @import("world.zig");
 const Player = @import("Player.zig");
+const Light = @import("Light.zig");
 const rcamera = @import("rcamera.zig");
 const objects = @import("objects.zig");
 const utils = @import("utils.zig");
@@ -28,6 +29,8 @@ const Game = struct {
     prng: std.Random.DefaultPrng,
     rand: std.Random,
     font: rl.Font,
+    light_shader: rl.Shader,
+    lights: std.ArrayList(Light),
 
     fn init(gpa: std.mem.Allocator) !*Game {
         const width: i32 = 1280;
@@ -39,6 +42,15 @@ const Game = struct {
 
         const font_path = try std.fs.path.joinZ(gpa, &.{ "resources", "fonts", "Chicago.ttf" });
         defer gpa.free(font_path);
+
+        const light_shader = try rl.loadShader(
+            "./resources/shaders/lighting.vert.glsl",
+            "./resources/shaders/lighting.frag.glsl",
+        );
+        light_shader.locs[@intFromEnum(rl.ShaderLocationIndex.vector_view)] = rl.getShaderLocation(light_shader, "viewPos");
+        const ambient_loc = rl.getShaderLocation(light_shader, "ambient");
+        const ambient: [4]f32 = .{ 0.1, 0.1, 0.1, 1.0 };
+        rl.setShaderValue(light_shader, ambient_loc, &ambient, .vec4);
 
         const game = try gpa.create(Game);
         game.* = .{
@@ -65,17 +77,18 @@ const Game = struct {
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .player = try .init(
-                .init(0, 0, 0),
-            ),
+            .player = try .init(.zero(), light_shader),
             .prng = .init(@intFromFloat(rl.getTime() * 1000)),
             .world = undefined,
             .rand = undefined,
             .font = try .init(font_path),
+            .light_shader = light_shader,
+            .lights = .empty,
         };
 
         game.rand = game.prng.random();
         game.world = try .init(gpa, game.rand, .{ 128, 128 });
+        try game.lights.append(gpa, .init(.one(), .zero(), .orange, 1.0, game.light_shader));
 
         rl.playSound(game.title_music);
 
@@ -88,6 +101,8 @@ const Game = struct {
         self.title_music.unload();
         self.world.deinit(gpa);
         self.font.unload();
+        self.lights.deinit(gpa);
+        self.light_shader.unload();
         rl.closeWindow();
         gpa.destroy(self);
     }
@@ -96,7 +111,6 @@ const Game = struct {
         while (!rl.windowShouldClose()) {
             rl.clearBackground(.dark_gray);
 
-            // self.camera.update(.third_person);
             rl.beginDrawing();
 
             switch (self.state) {
@@ -123,11 +137,13 @@ const Game = struct {
                         0.0,
                         .white,
                     );
-
                     if (rl.isKeyPressed(.space)) self.state = .in_game;
                 },
                 .in_game => {
                     rl.beginMode3D(self.camera);
+                    self.light_shader.activate();
+
+                    Light.updateLights(&self.camera, self.light_shader, &self.lights);
 
                     // world stuff
                     self.world.draw();
@@ -136,6 +152,7 @@ const Game = struct {
                     self.player.update(&self.camera);
                     self.player.draw();
 
+                    self.light_shader.deactivate();
                     rl.endMode3D();
                 },
             }
