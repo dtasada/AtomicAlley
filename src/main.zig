@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const engine = @import("engine.zig");
-const World = @import("world.zig");
+const world = @import("world.zig");
 const Player = @import("Player.zig");
 const Light = @import("Light.zig");
 const rcamera = @import("rcamera.zig");
@@ -18,13 +18,16 @@ const Screen = struct {
     height: i32,
 };
 
+const WORLD_W: usize = 64;
+const WORLD_H: usize = 64;
+
 const Game = struct {
     screen: Screen,
     title_screen: engine.Texture,
     title_music: rl.Sound,
     state: State,
     camera: rl.Camera3D,
-    world: World,
+    world: world.World(WORLD_W, WORLD_H),
     player: Player,
     prng: std.Random.DefaultPrng,
     rand: std.Random,
@@ -77,7 +80,7 @@ const Game = struct {
                 .fovy = 60,
                 .projection = .orthographic,
             },
-            .player = try .init(.zero(), light_shader),
+            .player = try .init(.init(0, 7, 0), light_shader),
             .prng = .init(@intFromFloat(rl.getTime() * 1000)),
             .world = undefined,
             .rand = undefined,
@@ -87,8 +90,8 @@ const Game = struct {
         };
 
         game.rand = game.prng.random();
-        game.world = try .init(gpa, game.rand, .{ 128, 128 });
-        try game.lights.append(gpa, .init(.one(), .zero(), .orange, 1.0, game.light_shader));
+        game.world = try .init(gpa, game.rand);
+        try game.lights.append(gpa, .init(.init(5, 50, 5), .zero(), .orange, 1.0, game.light_shader));
 
         rl.playSound(game.title_music);
 
@@ -109,7 +112,7 @@ const Game = struct {
 
     fn loop(self: *Game) void {
         while (!rl.windowShouldClose()) {
-            rl.clearBackground(.dark_gray);
+            rl.clearBackground(.init(20, 20, 20, 255));
 
             rl.beginDrawing();
 
@@ -141,9 +144,9 @@ const Game = struct {
                 },
                 .in_game => {
                     rl.beginMode3D(self.camera);
-                    self.light_shader.activate();
+                    // self.light_shader.activate();
 
-                    Light.updateLights(&self.camera, self.light_shader, &self.lights);
+                    // Light.updateLights(&self.camera, self.light_shader, &self.lights);
 
                     // world stuff
                     self.world.draw();
@@ -152,7 +155,7 @@ const Game = struct {
                     self.player.update(&self.camera);
                     self.player.draw();
 
-                    self.light_shader.deactivate();
+                    // self.light_shader.deactivate();
                     rl.endMode3D();
                 },
             }

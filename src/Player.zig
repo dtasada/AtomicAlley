@@ -27,7 +27,8 @@ pub fn update(self: *Self, camera: *rl.Camera) void {
     if (rl.isKeyDown(.d)) {
         move_vec = move_vec.add(rl.Vector2.init(0, -1).rotate(std.math.pi * (1.0 / 4.0)));
     }
-    move_vec = move_vec.normalize().scale(0.7);
+    const speed: f32 = 0.7;
+    move_vec = move_vec.normalize().scale(speed);
     self.pos.x += move_vec.x;
     self.pos.z += move_vec.y;
 
