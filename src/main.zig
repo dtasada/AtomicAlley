@@ -149,6 +149,7 @@ const Game = struct {
                     // Light.updateLights(&self.camera, self.light_shader, &self.lights);
 
                     // world stuff
+                    self.world.update();
                     self.world.draw();
 
                     // player stuff

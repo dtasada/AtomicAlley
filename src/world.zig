@@ -6,16 +6,21 @@ const main = @import("main.zig");
 
 const Tile = enum { none, ground, wall, path };
 
+const MinimapType = enum { grid, bsp };
+
 pub fn World(comptime world_w: usize, comptime world_h: usize) type {
+    const world_size = world_w * world_h;
+
     return struct {
         const Self = @This();
 
-        grid: [world_w * world_h]Tile,
+        grid: [world_size]Tile,
         root_node: *Node,
         model: rl.Model,
+        minimap_type: MinimapType = .bsp,
 
         pub fn init(gpa: std.mem.Allocator, rand: std.Random) !Self {
-            var grid: [world_w * world_h]Tile = [_]Tile{.none} ** (world_w * world_h);
+            var grid: [world_size]Tile = [_]Tile{.none} ** (world_size);
 
             const root_node = try genNode(
                 gpa,
@@ -24,6 +29,8 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
                 .init(0, 0, @floatFromInt(world_w), @floatFromInt(world_h)),
                 20,
             );
+
+            markWalls(&grid);
 
             return .{
                 .grid = grid,
@@ -38,24 +45,35 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             gpa.destroy(self.root_node);
         }
 
-        pub fn draw(self: *Self) void {
-            drawNode(self.root_node);
-            const s: f32 = 0.5;
+        pub fn update(self: *Self) void {
+            if (rl.isKeyPressed(.one)) self.minimap_type = .grid;
+            if (rl.isKeyPressed(.two)) self.minimap_type = .bsp;
+        }
 
-            for (0..self.grid.len) |i| {
-                const x = i % world_w;
-                const y = i / world_h;
-                rl.drawCube(
-                    .init(@floatFromInt(x), 3, @floatFromInt(y)),
-                    s,
-                    s,
-                    s,
-                    switch (self.grid[i]) {
-                        .ground => .init(137, 207, 240, 255),
-                        .path => .gray,
-                        else => .white,
-                    },
-                );
+        pub fn draw(self: *Self) void {
+            if (self.minimap_type == .grid) {
+                const s: f32 = 0.5;
+
+                for (0..self.grid.len) |i| {
+                    const x = i % world_w;
+                    const y = i / world_h;
+                    rl.drawCube(
+                        .init(@floatFromInt(x), 0, @floatFromInt(y)),
+                        s,
+                        s,
+                        s,
+                        switch (self.grid[i]) {
+                            .ground => .dark_brown,
+                            .path => .light_gray,
+                            .wall => .orange,
+                            else => .black,
+                        },
+                    );
+                }
+            }
+
+            if (self.minimap_type == .bsp) {
+                drawNode(self.root_node);
             }
         }
 
@@ -93,6 +111,16 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
                     );
                 },
                 .children => |c| {
+                    // node has children; for each child node, draw corridor between its rect centers
+                    rl.drawCylinderEx(
+                        .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
+                        .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
+                        0.4,
+                        0.4,
+                        8,
+                        .light_gray,
+                    );
+
                     drawNode(c[0]);
                     drawNode(c[1]);
                 },
@@ -125,7 +153,40 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
 
         const MIN_LEAF_SIZE: f32 = 8;
 
-        fn genNode(gpa: std.mem.Allocator, rand: std.Random, grid: *[world_w * world_h]Tile, rect: rl.Rectangle, max_leaves: usize) !*Node {
+        fn markWalls(grid: *[world_size]Tile) void {
+            // if a ground tile borders a none tile, it gets set to wall
+            // can modify while iterating since we only modify to wall (we don't check for it)
+            for (0..world_h) |y| {
+                for (0..world_w) |x| {
+                    const i = y * world_w + x;
+
+                    if (grid[i] != .none) continue;
+
+                    if (isOccupied(grid, x, y, -1, 0) or
+                        isOccupied(grid, x, y, 1, 0) or
+                        isOccupied(grid, x, y, 0, -1) or
+                        isOccupied(grid, x, y, 0, 1) or
+                        isOccupied(grid, x, y, -1, -1) or
+                        isOccupied(grid, x, y, 1, -1) or
+                        isOccupied(grid, x, y, 1, 1) or
+                        isOccupied(grid, x, y, -1, 1))
+                    {
+                        grid[i] = .wall;
+                    }
+                }
+            }
+            return;
+        }
+
+        fn isOccupied(grid: *[world_size]Tile, x: usize, y: usize, dx: isize, dy: isize) bool {
+            const nx = @as(isize, @intCast(x)) + dx;
+            const ny = @as(isize, @intCast(y)) + dy;
+            if (nx < 0 or ny < 0 or nx >= world_w or ny >= world_h) return false;
+            const t = grid[@as(usize, @intCast(ny)) * world_w + @as(usize, @intCast(nx))];
+            return t == .ground or t == .path;
+        }
+
+        fn genNode(gpa: std.mem.Allocator, rand: std.Random, grid: *[world_size]Tile, rect: rl.Rectangle, max_leaves: usize) !*Node {
             var node = try gpa.create(Node);
             node.color = .init(92, 64, 51, 255);
             node.rect = rect;
@@ -240,15 +301,15 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             const cy2: usize = @intFromFloat(split2.y + split2.height / 2);
 
             if (split_dir == .hor) {
-                // draw a horizontal line
-                const y = cy1; // == cy2
+                // draw a horizontal line (changes in x)
+                const y = cy1;
                 var x = @min(cx1, cx2);
                 while (x <= @max(cx1, cx2)) : (x += 1) {
                     if (grid[y * world_w + x] == .none) grid[y * world_w + x] = .path;
                 }
             } else if (split_dir == .ver) {
-                // draw a vertical line
-                const x = cx1; // == cx2
+                // draw a vertical line (changes in y)
+                const x = cx1;
                 var y = @min(cy1, cy2);
                 while (y <= @max(cy1, cy2)) : (y += 1) {
                     if (grid[y * world_w + x] == .none) grid[y * world_w + x] = .path;
