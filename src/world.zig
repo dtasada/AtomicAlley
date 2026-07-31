@@ -8,6 +8,42 @@ const Tile = enum { none, ground, wall, path };
 
 const MinimapType = enum { grid, bsp };
 
+pub const Room = struct {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+
+    pub fn init(x: i32, y: i32, w: i32, h: i32) @This() {
+        return .{ .x = x, .y = y, .w = w, .h = h };
+    }
+
+    pub fn centerx(self: @This()) i32 {
+        return self.x + @divFloor(self.w, 2);
+    }
+
+    pub fn centery(self: @This()) i32 {
+        return self.y + @divFloor(self.h, 2);
+    }
+
+    pub fn right(self: @This()) i32 {
+        return self.x + self.w;
+    }
+
+    pub fn bottom(self: @This()) i32 {
+        return self.y + self.h;
+    }
+
+    pub fn scale(self: @This(), s: f32) @This() {
+        return .init(
+            @intFromFloat(@as(f32, @floatFromInt(self.x)) * s),
+            @intFromFloat(@as(f32, @floatFromInt(self.y)) * s),
+            @intFromFloat(@as(f32, @floatFromInt(self.w)) * s),
+            @intFromFloat(@as(f32, @floatFromInt(self.h)) * s),
+        );
+    }
+};
+
 pub fn World(comptime world_w: usize, comptime world_h: usize) type {
     const world_size = world_w * world_h;
 
@@ -26,7 +62,7 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
                 gpa,
                 rand,
                 &grid,
-                .init(0, 0, @floatFromInt(world_w), @floatFromInt(world_h)),
+                .init(0, 0, @intCast(world_w), @intCast(world_h)),
                 20,
             );
 
@@ -56,7 +92,7 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
 
                 for (0..self.grid.len) |i| {
                     const x = i % world_w;
-                    const y = i / world_h;
+                    const y = i / world_w;
                     rl.drawCube(
                         .init(@floatFromInt(x), 0, @floatFromInt(y)),
                         s,
@@ -78,43 +114,56 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
         }
 
         pub fn drawNode(node: *Node) void {
-            const S: f32 = 1;
             switch (node.content) {
                 .leaf => |inner| {
                     // rect borders
                     const color: rl.Color = .init(0, 240, 0, 255);
-                    const rect = utils.scaleRect(node.rect, S);
+                    const rect = node.room; // no scaling needed if S == 1; see note below
+                    const rx: f32 = @floatFromInt(rect.x);
+                    const ry: f32 = @floatFromInt(rect.y);
+                    const rw: f32 = @floatFromInt(rect.w);
+                    const rh: f32 = @floatFromInt(rect.h);
+
                     const center: rl.Vector3 = .init(
-                        rect.x + rect.width / 2,
+                        rx + rw / 2,
                         0,
-                        rect.y + rect.height / 2,
+                        ry + rh / 2,
                     );
-                    const p1: rl.Vector3 = .init(center.x - rect.width / 2, center.y, center.z - rect.height / 2);
-                    const p2: rl.Vector3 = .init(center.x + rect.width / 2, center.y, center.z - rect.height / 2);
-                    const p3: rl.Vector3 = .init(center.x + rect.width / 2, center.y, center.z + rect.height / 2);
-                    const p4: rl.Vector3 = .init(center.x - rect.width / 2, center.y, center.z + rect.height / 2);
+                    const p1: rl.Vector3 = .init(center.x - rw / 2, center.y, center.z - rh / 2);
+                    const p2: rl.Vector3 = .init(center.x + rw / 2, center.y, center.z - rh / 2);
+                    const p3: rl.Vector3 = .init(center.x + rw / 2, center.y, center.z + rh / 2);
+                    const p4: rl.Vector3 = .init(center.x - rw / 2, center.y, center.z + rh / 2);
                     rl.drawLine3D(p1, p2, color);
                     rl.drawLine3D(p2, p3, color);
                     rl.drawLine3D(p3, p4, color);
                     rl.drawLine3D(p4, p1, color);
 
                     // plane itself
-                    const scaled_inner = utils.scaleRect(inner, S);
+                    const ix: f32 = @floatFromInt(inner.x);
+                    const iy: f32 = @floatFromInt(inner.y);
+                    const iw: f32 = @floatFromInt(inner.w);
+                    const ih: f32 = @floatFromInt(inner.h);
+
                     rl.drawPlane(
                         .init(
-                            scaled_inner.x + scaled_inner.width / 2,
+                            ix + iw / 2,
                             0,
-                            scaled_inner.y + scaled_inner.height / 2,
+                            iy + ih / 2,
                         ),
-                        .init(scaled_inner.width, scaled_inner.height),
+                        .init(iw, ih),
                         node.color,
                     );
                 },
                 .children => |c| {
                     // node has children; for each child node, draw corridor between its rect centers
+                    const c0x: f32 = @floatFromInt(c[0].room.centerx());
+                    const c0y: f32 = @floatFromInt(c[0].room.centery());
+                    const c1x: f32 = @floatFromInt(c[1].room.centerx());
+                    const c1y: f32 = @floatFromInt(c[1].room.centery());
+
                     rl.drawCylinderEx(
-                        .init(c[0].rect.x + c[0].rect.width / 2, 0.1, c[0].rect.y + c[0].rect.height / 2),
-                        .init(c[1].rect.x + c[1].rect.width / 2, 0.1, c[1].rect.y + c[1].rect.height / 2),
+                        .init(c0x, 0.1, c0y),
+                        .init(c1x, 0.1, c1y),
                         0.4,
                         0.4,
                         8,
@@ -128,10 +177,10 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
         }
 
         pub const Node = struct {
-            rect: rl.Rectangle,
+            room: Room,
             content: union(enum) {
                 children: [2]*Node,
-                leaf: rl.Rectangle,
+                leaf: Room,
             },
             paths: std.ArrayList(rl.Rectangle),
             color: rl.Color,
@@ -151,7 +200,7 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             }
         };
 
-        const MIN_LEAF_SIZE: f32 = 8;
+        const MIN_ROOM_SIZE: i32 = 8;
 
         fn markWalls(grid: *[world_size]Tile) void {
             // if a ground tile borders a none tile, it gets set to wall
@@ -186,20 +235,25 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             return t == .ground or t == .path;
         }
 
-        fn genNode(gpa: std.mem.Allocator, rand: std.Random, grid: *[world_size]Tile, rect: rl.Rectangle, max_leaves: usize) !*Node {
+        fn genNode(gpa: std.mem.Allocator, rand: std.Random, grid: *[world_size]Tile, room: Room, max_leaves: usize) !*Node {
             var node = try gpa.create(Node);
-            node.color = .init(92, 64, 51, 255);
-            node.rect = rect;
+            node.color = .init(
+                rand.int(u8),
+                rand.int(u8),
+                rand.int(u8),
+                255,
+            );
+            node.room = room;
             node.paths = .empty;
 
-            // precondition: node rect size (width and height) is both > MIN_LEAF_SIZE
-            std.debug.assert(node.rect.width >= MIN_LEAF_SIZE);
-            std.debug.assert(node.rect.height >= MIN_LEAF_SIZE);
+            // precondition: node rect size (width and height) is both > MIN_ROOM_SIZE
+            std.debug.assert(node.room.w >= MIN_ROOM_SIZE);
+            std.debug.assert(node.room.h >= MIN_ROOM_SIZE);
 
             // --- LLM BEGIN!
             // split direction, weighted by current aspect ratio
             // (horizontally means the split cut is along the x-axis)
-            const ratio = node.rect.width / node.rect.height;
+            const ratio: f32 = @as(f32, @floatFromInt(node.room.w)) / @as(f32, @floatFromInt(node.room.h));
             // probability of choosing a horizontal split (cutting the width down)
             // 0.5 when square, pulls toward 1.0 as width >>> height, toward 0.0 as height >>> width
             var p_hor: f32 = 0.5;
@@ -215,42 +269,52 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             // (horizontally means the products are in the x-axis)
             var split_dir: enum { hor, ver, none } = if (rand.float(f32) < p_hor) .hor else .ver;
 
-            var split1: rl.Rectangle = undefined;
-            var split2: rl.Rectangle = undefined;
-            const inner_portion: rl.Vector2 = .init(0.55, 0.9);
+            var split1: Room = undefined;
+            var split2: Room = undefined;
+            const inner_proportion: rl.Vector2 = .init(0.6, 0.8);
 
+            // finalize split direction given the randomness and biases
             if (split_dir == .hor) {
                 // if can't split horizontally, check if it can split vertically
-                if (node.rect.width < 2 * MIN_LEAF_SIZE) {
+                if (node.room.w < 2 * MIN_ROOM_SIZE) {
                     split_dir = .none;
-                    if (node.rect.height >= 2 * MIN_LEAF_SIZE and rand.float(f32) >= 0.5) {
+                    if (node.room.h >= 2 * MIN_ROOM_SIZE and rand.float(f32) >= 0.5) {
                         split_dir = .ver;
                     }
                 }
             } else if (split_dir == .ver) {
                 // if can't split horizontally, check if it can split vertically
-                if (node.rect.height < 2 * MIN_LEAF_SIZE) {
+                if (node.room.h < 2 * MIN_ROOM_SIZE) {
                     split_dir = .none;
-                    if (node.rect.width >= 2 * MIN_LEAF_SIZE and rand.float(f32) >= 0.5) {
+                    if (node.room.w >= 2 * MIN_ROOM_SIZE and rand.float(f32) >= 0.5) {
                         split_dir = .hor;
                     }
                 }
             }
 
+            // create the nodes based on whether we split or not
             if (split_dir == .none) {
                 // can't split anymore (it's are leaf)
                 // create an inner rectangle which is a bit smaller
-                const inner_w = utils.floatB(rand, inner_portion.x, inner_portion.y) * node.rect.width;
-                const inner_h = utils.floatB(rand, inner_portion.x, inner_portion.y) * node.rect.height;
-                const inner_x = utils.floatB(rand, node.rect.x, node.rect.x + node.rect.width - inner_w);
-                const inner_y = utils.floatB(rand, node.rect.y, node.rect.y + node.rect.height - inner_h);
+                const inner_min_w: i32 = @intFromFloat(@floor(inner_proportion.x * @as(f32, @floatFromInt(node.room.w))));
+                const inner_max_w: i32 = @intFromFloat(@floor(inner_proportion.y * @as(f32, @floatFromInt(node.room.w))));
+                const inner_min_h: i32 = @intFromFloat(@floor(inner_proportion.x * @as(f32, @floatFromInt(node.room.h))));
+                const inner_max_h: i32 = @intFromFloat(@floor(inner_proportion.y * @as(f32, @floatFromInt(node.room.h))));
+
+                // position that rectangle with a uniformly random offset within the larger rectangle
+                const inner_w = rand.intRangeAtMost(i32, inner_min_w, inner_max_w);
+                const inner_h = rand.intRangeAtMost(i32, inner_min_h, inner_max_h);
+                // 1 and -1 because we don't want bordering rooms
+                const inner_x = rand.intRangeAtMost(i32, 1, node.room.w - inner_w - 1) + node.room.x;
+                const inner_y = rand.intRangeAtMost(i32, 1, node.room.h - inner_h - 1) + node.room.y;
+
                 node.content = .{
                     .leaf = .init(inner_x, inner_y, inner_w, inner_h),
                 };
 
                 // mark territory in the grid
-                for (@as(usize, @intFromFloat(node.content.leaf.y))..@as(usize, @intFromFloat(node.content.leaf.y + node.content.leaf.height))) |y| {
-                    for (@as(usize, @intFromFloat(node.content.leaf.x))..@as(usize, @intFromFloat(node.content.leaf.x + node.content.leaf.width))) |x| {
+                for (@intCast(node.content.leaf.y)..@intCast(node.content.leaf.bottom())) |y| {
+                    for (@intCast(node.content.leaf.x)..@intCast(node.content.leaf.right())) |x| {
                         grid[y * world_w + x] = .ground;
                     }
                 }
@@ -260,45 +324,48 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
 
             // can split yaay!!
             if (split_dir == .hor) {
-                // we can only split if our size is at least 2 * MIN_LEAF_SIZE
-                const split_min_x = MIN_LEAF_SIZE;
-                const split_max_x = node.rect.width - MIN_LEAF_SIZE;
-                const split_x = utils.floatB(rand, split_min_x, split_max_x);
+                // we can only split if our size is at least 2 * MIN_ROOM_SIZE
+                // decide the split proportion
+                const split_min_x = MIN_ROOM_SIZE;
+                const split_max_x = node.room.w - MIN_ROOM_SIZE;
+                const split_x: i32 = rand.intRangeAtMost(i32, split_min_x, split_max_x);
+
+                // convert proportion to two split rectangles (rooms)
                 split1 = .init(
-                    node.rect.x,
-                    node.rect.y,
+                    node.room.x,
+                    node.room.y,
                     split_x,
-                    node.rect.height,
+                    node.room.h,
                 );
                 split2 = .init(
-                    node.rect.x + split_x,
-                    node.rect.y,
-                    node.rect.width - split_x,
-                    node.rect.height,
+                    node.room.x + split_x,
+                    node.room.y,
+                    node.room.w - split_x,
+                    node.room.h,
                 );
             } else if (split_dir == .ver) {
-                const split_min_y = MIN_LEAF_SIZE;
-                const split_max_y = node.rect.height - MIN_LEAF_SIZE;
-                const split_y = utils.floatB(rand, split_min_y, split_max_y);
+                const split_min_y = MIN_ROOM_SIZE;
+                const split_max_y = node.room.h - MIN_ROOM_SIZE;
+                const split_y = rand.intRangeAtMost(i32, split_min_y, split_max_y);
                 split1 = .init(
-                    node.rect.x,
-                    node.rect.y,
-                    node.rect.width,
+                    node.room.x,
+                    node.room.y,
+                    node.room.w,
                     split_y,
                 );
                 split2 = .init(
-                    node.rect.x,
-                    node.rect.y + split_y,
-                    node.rect.width,
-                    node.rect.height - split_y,
+                    node.room.x,
+                    node.room.y + split_y,
+                    node.room.w,
+                    node.room.h - split_y,
                 );
             }
 
             // carve the path between the two nodes in the grid since we just splat
-            const cx1: usize = @intFromFloat(split1.x + split1.width / 2);
-            const cy1: usize = @intFromFloat(split1.y + split1.height / 2);
-            const cx2: usize = @intFromFloat(split2.x + split2.width / 2);
-            const cy2: usize = @intFromFloat(split2.y + split2.height / 2);
+            const cx1: usize = @intCast(split1.centerx());
+            const cy1: usize = @intCast(split1.centery());
+            const cx2: usize = @intCast(split2.centerx());
+            const cy2: usize = @intCast(split2.centery());
 
             if (split_dir == .hor) {
                 // draw a horizontal line (changes in x)

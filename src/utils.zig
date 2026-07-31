@@ -1,15 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-pub fn scaleRect(rect: rl.Rectangle, scale: f32) rl.Rectangle {
-    return .{
-        .x = rect.x * scale,
-        .y = rect.y * scale,
-        .width = rect.width * scale,
-        .height = rect.height * scale,
-    };
-}
-
 // floatBetween
 pub fn floatB(rand: std.Random, a: f32, b: f32) f32 {
     return a + rand.float(f32) * (b - a);
