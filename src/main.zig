@@ -74,7 +74,7 @@ const Game = struct {
             },
             .state = .title,
             .camera = .{
-                .position = .init(71, 90, 71),
+                .position = .init(71, 80, 71),
                 .target = .init(0, 0, 0),
                 .up = .init(0, 1, 0),
                 .fovy = 60,
@@ -99,7 +99,7 @@ const Game = struct {
             game.light_shader,
         ));
 
-        rl.playSound(game.title_music);
+        // rl.playSound(game.title_music);
 
         return game;
     }
@@ -149,21 +149,24 @@ const Game = struct {
                     if (rl.isKeyPressed(.space)) self.state = .in_game;
                 },
                 .in_game => {
-                    rl.beginMode3D(self.camera);
-                    // self.light_shader.activate();
-
-                    // Light.updateLights(&self.camera, self.light_shader, &self.lights);
-
-                    // world stuff
-                    self.world.update();
-                    self.world.draw();
-
-                    // player stuff
+                    // UPDATES
+                    self.world.update(&self.camera);
                     self.player.update(&self.camera);
-                    self.player.draw();
 
-                    // self.light_shader.deactivate();
-                    rl.endMode3D();
+                    // DRAWING
+                    {
+                        rl.beginMode3D(self.camera);
+                        rl.beginBlendMode(.alpha);
+                        defer rl.endMode3D();
+                        defer rl.endBlendMode();
+
+                        // self.light_shader.activate();
+
+                        // Light.updateLights(&self.camera, self.light_shader, &self.lights);
+
+                        self.player.draw();
+                        self.world.draw();
+                    }
                 },
             }
 

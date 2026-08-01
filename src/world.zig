@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const Palette = @import("Palette.zig");
+const Player = @import("Player.zig");
 
 const main = @import("main.zig");
 
@@ -10,7 +11,7 @@ const Tile = enum { none, ground, hwall, vwall, dwall, path };
 const MinimapType = enum { grid, bsp };
 
 const Terrain = union(enum) {
-    ground: struct {
+    const Ground = struct {
         x: f32,
         y: f32,
         w: f32,
@@ -34,9 +35,9 @@ const Terrain = union(enum) {
                 self.color,
             );
         }
-    },
+    };
 
-    wall: struct {
+    const Wall = struct {
         // x and y are the CENTER of the rectangle
         // w and h are ENTIRE width and heights (NOT halved)
         x: f32,
@@ -58,6 +59,13 @@ const Terrain = union(enum) {
             };
         }
 
+        pub fn getBoundingBox(self: @This()) rl.BoundingBox {
+            return .{
+                .min = .init(self.x - self.w / 2, 0, self.y - self.l / 2),
+                .max = .init(self.x + self.w / 2, self.h, self.y + self.l / 2),
+            };
+        }
+
         pub fn draw(self: @This()) void {
             rl.drawCube(
                 .init(self.x, self.h / 2, self.y),
@@ -74,7 +82,10 @@ const Terrain = union(enum) {
                 .sky_blue,
             );
         }
-    },
+    };
+
+    wall: Wall,
+    ground: Ground,
 };
 
 pub const Rect = struct {
@@ -171,9 +182,25 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
             self.terrains.deinit(gpa);
         }
 
-        pub fn update(self: *Self) void {
+        pub fn update(self: *Self, camera: *const rl.Camera) void {
+            // debug
             if (rl.isKeyPressed(.one)) self.minimap_type = .grid;
             if (rl.isKeyPressed(.two)) self.minimap_type = .bsp;
+
+            // check if terrain collides with the camera ray
+            const ray: rl.Ray = .{ .position = camera.position, .direction = camera.target.subtract(camera.position) };
+            for (self.terrains.items) |*terrain| {
+                switch (terrain.*) {
+                    .wall => |*wall| {
+                        wall.color.a = 255;
+                        const col = rl.getRayCollisionBox(ray, wall.getBoundingBox());
+                        if (col.hit) {
+                            wall.color.a = 20;
+                        }
+                    },
+                    else => {},
+                }
+            }
         }
 
         pub fn draw(self: *Self) void {
@@ -527,15 +554,17 @@ pub fn World(comptime world_w: usize, comptime world_h: usize) type {
 
                     if (grid[i] != .none) continue;
 
-                    if (isOccupied(grid, x, y, 0, 1)) {
+                    if (isOccupied(grid, x, y, 0, 1) or isOccupied(grid, x, y, 0, -1)) {
                         grid[i] = .hwall;
                         continue;
                     }
-                    if (isOccupied(grid, x, y, 1, 0)) {
+                    if (isOccupied(grid, x, y, 1, 0) or isOccupied(grid, x, y, -1, 0)) {
                         grid[i] = .vwall;
                         continue;
                     }
-                    if (isOccupied(grid, x, y, 1, 1)) {
+                    if (isOccupied(grid, x, y, 1, 1) or isOccupied(grid, x, y, -1, -1) or
+                        isOccupied(grid, x, y, -1, 1) or isOccupied(grid, x, y, 1, -1))
+                    {
                         grid[i] = .dwall;
                         continue;
                     }
