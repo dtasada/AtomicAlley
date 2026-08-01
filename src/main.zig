@@ -18,8 +18,8 @@ const Screen = struct {
     height: i32,
 };
 
-const WORLD_W: usize = 64;
-const WORLD_H: usize = 64;
+const WORLD_W: usize = 128;
+const WORLD_H: usize = 128;
 
 const Game = struct {
     screen: Screen,
@@ -91,7 +91,13 @@ const Game = struct {
 
         game.rand = game.prng.random();
         game.world = try .init(gpa, game.rand);
-        try game.lights.append(gpa, .init(.init(5, 50, 5), .zero(), .orange, 1.0, game.light_shader));
+        try game.lights.append(gpa, .init(
+            .init(5, 300, 5),
+            .zero(),
+            .white,
+            1.0,
+            game.light_shader,
+        ));
 
         rl.playSound(game.title_music);
 
